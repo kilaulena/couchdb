@@ -1,5 +1,7 @@
 Testsuite for couch.js and jquery.couch.js. 
 
+Run the testsuite by browsing to this site: http://127.0.0.1:5984/_utils/spec/run.html
+
 Read more about JSpec here: http://jspec.info/
 
 The Apache CouchDB README: http://github.com/apache/couchdb
