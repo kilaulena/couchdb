@@ -12,6 +12,137 @@
 
 (function($) {
 
+  function Session() {
+    
+    function doLogin(name, password, callback) {
+      $.couch.login({
+        name : name,
+        password : password,
+        success : function() {
+          $.futon.session.sidebar();
+          callback();
+        },
+        error : function(code, error, reason) {
+          $.futon.session.sidebar();
+          callback({name : "Error logging in: "+reason});
+        }
+      });
+    };
+    
+    function doSignup(name, password, callback, runLogin) {
+      $.couch.signup({
+        name : name
+      }, password, {
+        success : function() {
+          if (runLogin) {
+            doLogin(name, password, callback);            
+          } else {
+            callback();
+          }
+        },
+        error : function(status, error, reason) {
+          $.futon.session.sidebar();
+          if (error == "conflict") {
+            callback({name : "Name '"+name+"' is taken"});
+          } else {
+            callback({name : "Signup error:  "+reason});
+          }
+        }
+      });
+    };
+    
+    function validateUsernameAndPassword(data, callback) {
+      if (!data.name || data.name.length == 0) {
+        callback({name: "Please enter a name."});
+        return false;
+      };
+      if (!data.password || data.password.length == 0) {
+        callback({password: "Please enter a password."});
+        return false;
+      };
+      return true;
+    };
+    
+    function createAdmin() {
+      $.showDialog("dialog/_create_admin.html", {
+        submit: function(data, callback) {
+          if (!validateUsernameAndPassword(data, callback)) return;
+          $.couch.config({
+            success : function() {
+              doLogin(data.name, data.password, function(errors) {
+                if(!$.isEmptyObject(errors)) {
+                  callback(errors);
+                  return;
+                }
+                doSignup(data.name, null, function(errors) {
+                  callback(errors);
+                  }, false);
+                });            
+            }
+          }, "admins", data.name, data.password);
+        }
+      });
+      return false;
+    };
+
+    function login() {
+      $.showDialog("dialog/_login.html", {
+        submit: function(data, callback) {
+          if (!validateUsernameAndPassword(data, callback)) return;
+          doLogin(data.name, data.password, callback);
+        }
+      });
+      return false;
+    };
+
+    function logout() {
+      $.couch.logout({
+        success : function(resp) {
+          $.futon.session.sidebar();
+        }
+      })
+    };
+
+    function signup() {
+      $.showDialog("dialog/_signup.html", {
+        submit: function(data, callback) {
+          if (!validateUsernameAndPassword(data, callback)) return;
+          doSignup(data.name, data.password, callback, true);
+        }
+      });
+      return false;
+    };
+
+    this.setupSidebar = function() {
+      $("#userCtx .login").click(login);
+      $("#userCtx .logout").click(logout);
+      $("#userCtx .signup").click(signup);
+      $("#userCtx .createadmin").click(createAdmin);
+    };
+    
+    this.sidebar = function() {
+      // get users db info?
+      $("#userCtx span").hide();
+      $.couch.session({
+        success : function(r) {
+          var userCtx = r.userCtx;
+          if (userCtx.name) {
+            $("#userCtx .name").text(userCtx.name).attr({href : "/_utils/document.html?"+encodeURIComponent(r.info.authentication_db)+"/org.couchdb.user%3A"+encodeURIComponent(userCtx.name)});
+            if (userCtx.roles.indexOf("_admin") != -1) {
+              $("#userCtx .loggedinadmin").show();
+            } else {
+              $("#userCtx .loggedin").show();
+            }
+          } else if (userCtx.roles.indexOf("_admin") != -1) {
+            $("#userCtx .adminparty").show();
+          } else {
+            $("#userCtx .loggedout").show();
+          };
+        }
+      })
+    };
+  };
+
   function Navigation() {
     var nav = this;
     this.loaded = false;
@@ -35,7 +166,8 @@
     }
 
     this.addDatabase = function(name) {
-      var recentDbs = $.futon.storage.get("recent", "").split(",");
+      var current = $.futon.storage.get("recent", "");
+      var recentDbs = current ? current.split(",") : [];
       if ($.inArray(name, recentDbs) == -1) {
         recentDbs.unshift(name);
         if (recentDbs.length > 10) recentDbs.length = 10;
@@ -46,7 +178,8 @@
 
     this.removeDatabase = function(name) {
       // remove database from recent databases list
-      var recentDbs = $.futon.storage.get("recent").split(",");
+      var current = $.futon.storage.get("recent", "");
+      var recentDbs = current ? current.split(",") : [];
       var recentIdx = $.inArray(name, recentDbs);
       if (recentIdx >= 0) {
         recentDbs.splice(recentIdx, 1);
@@ -184,11 +317,14 @@
       return callback(decl);
     }
 
+    // add suffix to cookie names to be able to separate between ports
+    var cookiePrefix = location.port + "_";
+
     var handlers = {
 
       "cookie": {
         get: function(name) {
-          var nameEq = name + "=";
+          var nameEq = cookiePrefix + name + "=";
           var parts = document.cookie.split(';');
           for (var i = 0; i < parts.length; i++) {
             var part = parts[i].replace(/^\s+/, "");
@@ -200,13 +336,14 @@
         set: function(name, value) {
           var date = new Date();
           date.setTime(date.getTime() + 14*24*60*60*1000); // two weeks
-          document.cookie = name + "=" + escape(value) + "; expires=" +
-            date.toGMTString();
+          document.cookie = cookiePrefix + name + "=" + escape(value) +
+            "; expires=" + date.toGMTString();
         },
         del: function(name) {
           var date = new Date();
           date.setTime(date.getTime() - 24*60*60*1000); // yesterday
-          document.cookie = name + "=; expires=" + date.toGMTString();
+          document.cookie = cookiePrefix + name + "=" +
+            "; expires=" + date.toGMTString();
         }
       },
 
@@ -230,37 +367,29 @@
 
   }
 
+  $.couch.urlPrefix = "..";
   $.futon = $.futon || {};
   $.extend($.futon, {
     navigation: new Navigation(),
+    session : new Session(),
     storage: new Storage()
   });
 
-  $.fn.addPlaceholder = function(text) {
-    return this.each(function() {
+  $.fn.addPlaceholder = function() {
+    if (this[0] && "placeholder" in document.createElement("input")) {
+      return; // found native placeholder support
+    }
+    return this.live('focusin', function() {
       var input = $(this);
-      if ($.browser.safari) {
-        input.attr("placeholder", text);
-        return;
+      if (input.val() === input.attr("placeholder")) {
+        input.removeClass("placeholder").val("");
       }
-      input.blur(function() {
-        if ($.trim(input.val()) == "") {
-          input.addClass("placeholder").val(text);
-        } else {
-          input.removeClass("placeholder");
-        }
-      }).triggerHandler("blur")
-      input.focus(function() {
-        if (input.is(".placeholder")) {
-          input.val("").removeClass("placeholder");
-        }
-      });
-      $(this.form).submit(function() {
-        if (input.is(".placeholder")) {
-          input.val("");
-        }
-      });
-    });
+    }).live("focusout", function() {
+      var input = $(this);
+      if (input.val() === "") {
+        input.val(input.attr("placeholder")).addClass("placeholder");
+      }
+    }).trigger("focusout");
   }
 
   $.fn.enableTabInsertion = function(chars) {
@@ -296,6 +425,8 @@
       // doing this as early as possible prevents flickering
       $(document.body).addClass("fullwidth");
     }
+    $("input[placeholder]").addPlaceholder();
+
     $.get("_sidebar.html", function(resp) {
       $("#wrap").append(resp)
         .find("#sidebar-toggle").click(function(e) {
@@ -309,6 +440,8 @@
       $.futon.navigation.updateDatabases();
       $.futon.navigation.updateSelection();
       $.futon.navigation.ready();
+      $.futon.session.setupSidebar();
+      $.futon.session.sidebar();
 
       $.couch.info({
         success: function(info, status) {

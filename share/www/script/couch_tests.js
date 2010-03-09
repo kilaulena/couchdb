@@ -19,6 +19,7 @@ if (typeof window == 'undefined' || !window) {
   CouchDB.inBrowser = true;
 }
 
+CouchDB.urlPrefix = "..";
 var couchTests = {};
 
 function loadTest(file) {
@@ -61,7 +62,9 @@ loadTest("multiple_rows.js");
 loadScript("script/oauth.js");
 loadScript("script/sha1.js");
 loadTest("oauth.js");
+loadTest("proxyauth.js");
 loadTest("purge.js");
+loadTest("reader_acl.js");
 loadTest("recreate_doc.js");
 loadTest("reduce.js");
 loadTest("reduce_builtin.js");
@@ -69,10 +72,12 @@ loadTest("reduce_false.js");
 loadTest("reduce_false_temp.js");
 loadTest("replication.js");
 loadTest("rev_stemming.js");
+loadTest("rewrite.js");
 loadTest("security_validation.js");
 loadTest("show_documents.js");
 loadTest("stats.js");
 loadTest("update_documents.js");
+loadTest("users_db.js");
 loadTest("utf8.js");
 loadTest("uuids.js");
 loadTest("view_collation.js");

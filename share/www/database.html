@@ -19,12 +19,13 @@ specific language governing permissions and limitations under the License.
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <link rel="stylesheet" href="style/layout.css?0.11.0" type="text/css">
     <script src="script/json2.js"></script>
-    <script src="script/jquery.js?1.3.2"></script>
+    <script src="script/sha1.js"></script>
+    <script src="script/jquery.js?1.4.2"></script>
     <script src="script/jquery.couch.js?0.11.0"></script>
     <script src="script/jquery.dialog.js?0.11.0"></script>
+    <script src="script/futon.js?0.11.0"></script>
     <script src="script/jquery.resizer.js?0.11.0"></script>
     <script src="script/jquery.suggest.js?0.11.0"></script>
-    <script src="script/futon.js?0.11.0"></script>
     <script src="script/futon.browse.js?0.11.0"></script>
     <script src="script/futon.format.js?0.11.0"></script>
     <script>
@@ -114,11 +115,11 @@ specific language governing permissions and limitations under the License.
           $.futon.storage.set("per_page", this.value);
         });
         $("#toolbar button.add").click(page.newDocument);
-        $("#toolbar button.compact").click(page.compactDatabase);
+        $("#toolbar button.compact").click(page.compactAndCleanup);
         $("#toolbar button.delete").click(page.deleteDatabase);
-        $("#toolbar button.compactview").click(page.compactView);
+        $("#toolbar button.security").click(page.databaseSecurity);
 
-        $('#jumpto input').addPlaceholder("Document ID").suggest(function(text, callback) {
+        $('#jumpto input').suggest(function(text, callback) {
           page.db.allDocs({
             limit: 10, startkey: text, endkey: text + 'zzz',
             success: function(docs) {
@@ -156,14 +157,14 @@ specific language governing permissions and limitations under the License.
       </div>
       <div id="jumpto">
         <label>Jump to:
-          <input type="text" name="docid" autocomplete="off" />
+          <input type="text" name="docid" placeholder="Document ID" autocomplete="off" />
         </label>
       </div>
       <ul id="toolbar">
         <li><button class="add">New Document</button></li>
-        <li><button class="compact">Compact Database…</button></li>
+        <li><button class="security">Security…</button></li>
+        <li><button class="compact">Compact &amp; Cleanup…</button></li>
         <li><button class="delete">Delete Database…</button></li>
-        <li><button class="compactview" style="display: none">Compact View…</button></li>
       </ul>
 
       <div id="viewcode" class="collapsed" style="display: none">

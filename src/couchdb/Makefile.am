@@ -30,6 +30,7 @@ source_files = \
     couch.erl \
     couch_app.erl \
     couch_btree.erl \
+    couch_changes.erl \
     couch_config.erl \
     couch_config_writer.erl \
     couch_db.erl \
@@ -48,6 +49,7 @@ source_files = \
     couch_httpd_show.erl \
     couch_httpd_view.erl \
     couch_httpd_misc_handlers.erl \
+	couch_httpd_rewrite.erl \
     couch_httpd_stats_handlers.erl \
     couch_key_tree.erl \
     couch_log.erl \
@@ -85,6 +87,7 @@ compiled_files = \
     couch.beam \
     couch_app.beam \
     couch_btree.beam \
+    couch_changes.beam \
     couch_config.beam \
     couch_config_writer.beam \
     couch_db.beam \
@@ -103,6 +106,7 @@ compiled_files = \
     couch_httpd_show.beam \
     couch_httpd_view.beam \
     couch_httpd_misc_handlers.beam \
+	couch_httpd_rewrite.beam \
     couch_httpd_stats_handlers.beam \
     couch_key_tree.beam \
     couch_log.beam \

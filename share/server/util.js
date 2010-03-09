@@ -10,86 +10,83 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-toJSON.subs = {'\b': '\\b', '\t': '\\t', '\n': '\\n', '\f': '\\f',
-              '\r': '\\r', '"' : '\\"', '\\': '\\\\'};
-toJSON.dispatcher = {
-    "Array": function(v) {
-      var buf = [];
-      for (var i = 0; i < v.length; i++) {
-        buf.push(toJSON(v[i]));
-      }
-      return "[" + buf.join(",") + "]";
-    },
-    "Boolean": function(v) {
-      return v.toString();
-    },
-    "Date": function(v) {
-      var f = function(n) { return n < 10 ? '0' + n : n };
-      return '"' + v.getUTCFullYear()   + '-' +
-                 f(v.getUTCMonth() + 1) + '-' +
-                 f(v.getUTCDate())      + 'T' +
-                 f(v.getUTCHours())     + ':' +
-                 f(v.getUTCMinutes())   + ':' +
-                 f(v.getUTCSeconds())   + 'Z"';
-    },
-    "Number": function(v) {
-      return isFinite(v) ? v.toString() : "null";
-    },
-    "Object": function(v) {
-      //if (v === null) return "null";
-      var buf = [];
-      for (var k in v) {
-        if (!v.hasOwnProperty(k) || typeof(k) !== "string" || v[k] === undefined) {
-          continue;
-        }
-        buf.push(toJSON(k) + ": " + toJSON(v[k]));
-      }
-      return "{" + buf.join(",") + "}";
-    },
-    "String": function(v) {
-      if (/["\\\x00-\x1f]/.test(v)) {
-        v = v.replace(/([\x00-\x1f\\"])/g, function(a, b) {
-          var c = toJSON.subs[b];
-          if (c) return c;
-          c = b.charCodeAt();
-          return '\\u00' + Math.floor(c / 16).toString(16) + (c % 16).toString(16);
-        });
-      }
-      return '"' + v + '"';
+var resolveModule = function(names, parent, current) {
+  if (names.length == 0) {
+    if (typeof current != "string") {
+      throw ["error","invalid_require_path",
+        'Must require a JavaScript string, not: '+(typeof current)];
     }
-};
-
-function toJSON(val) {
-  if (typeof(val) == "undefined") {
-    throw "Cannot encode 'undefined' value as JSON";
+    return [current, parent];
   }
-  if (typeof(val) == "xml") { // E4X support
-    val = val.toXMLString();
+  // we need to traverse the path
+  var n = names.shift();
+  if (n == '..') {
+    if (!(parent && parent.parent)) {
+      throw ["error", "invalid_require_path", 'Object has no parent '+JSON.stringify(current)];
+    }
+    return resolveModule(names, parent.parent.parent, parent.parent);
+  } else if (n == '.') {
+    if (!parent) {
+      throw ["error", "invalid_require_path", 'Object has no parent '+JSON.stringify(current)];
+    }
+    return resolveModule(names, parent.parent, parent);
   }
-  if (val === null) { return "null"; }
-  return (toJSON.dispatcher[val.constructor.name])(val);
+  if (!current[n]) {
+    throw ["error", "invalid_require_path", 'Object has no property "'+n+'". '+JSON.stringify(current)];
+  }
+  var p = current
+  current = current[n];
+  current.parent = p;
+  return resolveModule(names, p, current)
 }
 
-function compileFunction(source) {
-  try {
-    var functionObject = sandbox ? evalcx(source, sandbox) : eval(source);
-  } catch (err) {
-    throw {error: "compilation_error",
-      reason: err.toString() + " (" + source + ")"};
-  }
-  if (typeof(functionObject) == "function") {
-    return functionObject;
-  } else {
-    throw {error: "compilation_error",
-      reason: "expression does not eval to a function. (" + source + ")"};
-  }
-}
-
-function recursivelySeal(obj) {
-  seal(obj);
-  for (var propname in obj) {
-    if (typeof doc[propname] == "object") {
-      recursivelySeal(doc[propname]);
+var Couch = {
+  // moving this away from global so we can move to json2.js later
+  toJSON : function (val) {
+    return JSON.stringify(val);
+  },
+  compileFunction : function(source, ddoc) {    
+    if (!source) throw(["error","not_found","missing function"]);
+    try {
+      if (sandbox) {
+        if (ddoc) {
+          var require = function(name, parent) {
+            var exports = {};
+            var resolved = resolveModule(name.split('/'), parent, ddoc);
+            var source = resolved[0]; 
+            parent = resolved[1];
+            var s = "function (exports, require) { " + source + " }";
+            try {
+              var func = sandbox ? evalcx(s, sandbox) : eval(s);
+              func.apply(sandbox, [exports, function(name) {return require(name, parent, source)}]);
+            } catch(e) { 
+              throw ["error","compilation_error","Module require('"+name+"') raised error "+e.toSource()]; 
+            }
+            return exports;
+          }
+          sandbox.require = require;
+        }
+        var functionObject = evalcx(source, sandbox);
+      } else {
+        var functionObject = eval(source);
+      }
+    } catch (err) {
+      throw(["error", "compilation_error", err.toSource() + " (" + source + ")"]);
+    };
+    if (typeof(functionObject) == "function") {
+      return functionObject;
+    } else {
+      throw(["error","compilation_error",
+        "Expression does not eval to a function. (" + source.toSource() + ")"]);
+    };
+  },
+  recursivelySeal : function(obj) {
+    // seal() is broken in current Spidermonkey
+    seal(obj);
+    for (var propname in obj) {
+      if (typeof doc[propname] == "object") {
+        recursivelySeal(doc[propname]);
+      }
     }
   }
 }
@@ -97,18 +94,17 @@ function recursivelySeal(obj) {
 // prints the object as JSON, and rescues and logs any toJSON() related errors
 function respond(obj) {
   try {
-    print(toJSON(obj));
+    print(Couch.toJSON(obj));
   } catch(e) {
     log("Error converting object to JSON: " + e.toString());
+    log("error on obj: "+ obj.toSource());
   }
 };
 
-log = function(message) {
-  // return;
-  if (typeof message == "undefined") {
-    message = "Error: attempting to log message of 'undefined'.";
-  } else if (typeof message != "string") {
-    message = toJSON(message);
+function log(message) {
+  // idea: query_server_config option for log level
+  if (typeof message != "string") {
+    message = Couch.toJSON(message);
   }
   respond(["log", message]);
 };

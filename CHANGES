@@ -6,10 +6,29 @@ Version 0.11.0
 
 This version has not been released yet.
 
+Security
+
+ * Added default cookie-authentication and users database.
+ * Added Futon user interface for user signup and login.
+ * Added per-database reader access control lists.
+ * Added per-database security object for configuration data in validation
+   functions.
+ * Added proxy authentication handler
+
+HTTP Interface
+
+ * Provide Content-MD5 header support for attachments.
+ * Added URL Rewriter handler.
+ * Added virtual host handling.
+
 Build and System Integration
 
  * Added support for building a Windows installer as part of 'make dist'.
  * Bug fix for building couch.app's module list.
+ * ETap tests are now run during make distcheck. This included a number of
+   updates to the build system to properly support VPATH builds.
+ * Gavin McDonald setup a build-bot instance. More info can be found at
+   http://ci.apache.org/buildbot.html
 
 View Server
 
@@ -18,23 +37,44 @@ View Server
  * Improved view index build time by reducing ICU collation callouts.
  * Improved view information objects.
  * Bug fix for partial updates during view builds.
+ * Move query server to a design-doc based protocol.
+ * Use json2.js for JSON serialization for compatiblity with native JSON.
+ * Major refactoring of couchjs to lay the groundwork for disabling cURL
+   support. The new HTTP interaction acts like a synchronous XHR. Example usage
+   of the new system is in the JavaScript CLI test runner.
 
 Replication
 
  * Added option to implicitly create replication target databases.
+ * Avoid leaking file descriptors on automatic replication restarts.
+ * Added option to replicate a list of documents by id.
+ * Allow continuous replication to be cancelled.
 
 Storage System
 
  * Adds batching of multiple updating requests, to improve throughput with many
    writers. Removed the now redundant couch_batch_save module.
+ * Adds configurable compression of attachments.
 
 Runtime Statistics
 
+ * Statistics are now calculated for a moving window instead of non-overlapping
+   timeframes. 
  * Fixed a problem with statistics timers and system sleep.
+ * Moved statistic names to a term file in the priv directory.
 
 Futon
 
  * Added a button for view compaction.
+ * JSON strings are now displayed as-is in the document view, without the escaping of
+   new-lines and quotes. That dramatically improves readability of multi-line
+   strings.
+ * Same goes for editing of JSON string values. When a change to a field value is
+   submitted, and the value is not valid JSON it is assumed to be a string. This
+   improves editing of multi-line strings a lot.
+ * Hitting tab in textareas no longer moves focus to the next form field, but simply
+   inserts a tab character at the current caret position.
+ * Fixed some font declarations.
 
 Version 0.10.1
 --------------

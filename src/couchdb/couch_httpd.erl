@@ -13,10 +13,11 @@
 -module(couch_httpd).
 -include("couch_db.hrl").
 
--export([start_link/0, stop/0, handle_request/5]).
+-export([start_link/0, stop/0, handle_request/6]).
 
 -export([header_value/2,header_value/3,qs_value/2,qs_value/3,qs/1,path/1,absolute_uri/2,body_length/1]).
 -export([verify_is_server_admin/1,unquote/1,quote/1,recv/2,recv_chunked/4,error_info/1]).
+-export([make_fun_spec_strs/1, make_arity_1_fun/1]).
 -export([parse_form/1,json_body/1,json_body_obj/1,body/1,doc_etag/1, make_etag/1, etag_respond/3]).
 -export([primary_header_value/2,partition/1,serve_file/3,serve_file/4, server_header/0]).
 -export([start_chunked_response/3,send_chunk/2,log_request/2]).
@@ -24,6 +25,7 @@
 -export([start_json_response/2, start_json_response/3, end_json_response/1]).
 -export([send_response/4,send_method_not_allowed/2,send_error/4, send_redirect/2,send_chunked_error/2]).
 -export([send_json/2,send_json/3,send_json/4,last_chunk/1,parse_multipart_request/3]).
+-export([accepted_encodings/1,handle_request_int/5]).
 
 start_link() ->
     % read config and register for configuration changes
@@ -33,6 +35,7 @@ start_link() ->
 
     BindAddress = couch_config:get("httpd", "bind_address", any),
     Port = couch_config:get("httpd", "port", "5984"),
+    VirtualHosts = couch_config:get("vhosts"),
 
     DefaultSpec = "{couch_httpd_db, handle_request}",
     DefaultFun = make_arity_1_fun(
@@ -51,7 +54,7 @@ start_link() ->
 
     DesignUrlHandlersList = lists:map(
         fun({UrlKey, SpecStr}) ->
-            {?l2b(UrlKey), make_arity_2_fun(SpecStr)}
+            {?l2b(UrlKey), make_arity_3_fun(SpecStr)}
         end, couch_config:get("httpd_design_handlers")),
 
     UrlHandlers = dict:from_list(UrlHandlersList),
@@ -59,7 +62,8 @@ start_link() ->
     DesignUrlHandlers = dict:from_list(DesignUrlHandlersList),
     Loop = fun(Req)->
         apply(?MODULE, handle_request, [
-            Req, DefaultFun, UrlHandlers, DbUrlHandlers, DesignUrlHandlers
+            Req, DefaultFun, UrlHandlers, DbUrlHandlers, DesignUrlHandlers,
+                VirtualHosts
         ])
     end,
 
@@ -87,6 +91,8 @@ start_link() ->
         ("httpd_global_handlers", _) ->
             ?MODULE:stop();
         ("httpd_db_handlers", _) ->
+            ?MODULE:stop();
+        ("vhosts", _) ->
             ?MODULE:stop()
         end, Pid),
 
@@ -110,18 +116,63 @@ make_arity_2_fun(SpecStr) ->
         fun(Arg1, Arg2) -> Mod:Fun(Arg1, Arg2) end
     end.
 
+make_arity_3_fun(SpecStr) ->
+    case couch_util:parse_term(SpecStr) of
+    {ok, {Mod, Fun, SpecArg}} ->
+        fun(Arg1, Arg2, Arg3) -> Mod:Fun(Arg1, Arg2, Arg3, SpecArg) end;
+    {ok, {Mod, Fun}} ->
+        fun(Arg1, Arg2, Arg3) -> Mod:Fun(Arg1, Arg2, Arg3) end
+    end.
+
 % SpecStr is "{my_module, my_fun}, {my_module2, my_fun2}"
-make_arity_1_fun_list(SpecStr) ->
-    [make_arity_1_fun(FunSpecStr) || FunSpecStr <- re:split(SpecStr, "(?<=})\\s*,\\s*(?={)", [{return, list}])].
+make_fun_spec_strs(SpecStr) ->
+    re:split(SpecStr, "(?<=})\\s*,\\s*(?={)", [{return, list}]).
 
 stop() ->
     mochiweb_http:stop(?MODULE).
 
+%%
+
+% if there's a vhost definition that matches the request, redirect internally
+redirect_to_vhost(MochiReq, DefaultFun,
+    UrlHandlers, DbUrlHandlers, DesignUrlHandlers, VhostTarget) ->
+
+    Path = MochiReq:get(raw_path),
+    Target = VhostTarget ++ Path,
+    ?LOG_DEBUG("Vhost Target: '~p'~n", [Target]),
+    % build a new mochiweb request
+    MochiReq1 = mochiweb_request:new(MochiReq:get(socket),
+                                      MochiReq:get(method),
+                                      Target,
+                                      MochiReq:get(version),
+                                      MochiReq:get(headers)),
+    % cleanup, It force mochiweb to reparse raw uri.
+    MochiReq1:cleanup(),
+
+    handle_request_int(MochiReq1, DefaultFun,
+        UrlHandlers, DbUrlHandlers, DesignUrlHandlers).
 
 handle_request(MochiReq, DefaultFun,
-        UrlHandlers, DbUrlHandlers, DesignUrlHandlers) ->
+    UrlHandlers, DbUrlHandlers, DesignUrlHandlers, VirtualHosts) ->
+
+    % grab Host from Req
+    Vhost = MochiReq:get_header_value("Host"),
+
+    % find Vhost in config
+    case proplists:get_value(Vhost, VirtualHosts) of
+        undefined -> % business as usual
+            handle_request_int(MochiReq, DefaultFun,
+                    UrlHandlers, DbUrlHandlers, DesignUrlHandlers);
+        VhostTarget ->
+            redirect_to_vhost(MochiReq, DefaultFun,
+                UrlHandlers, DbUrlHandlers, DesignUrlHandlers, VhostTarget)
+    end.
+
+
+handle_request_int(MochiReq, DefaultFun,
+            UrlHandlers, DbUrlHandlers, DesignUrlHandlers) ->
     Begin = now(),
-    AuthenticationFuns = make_arity_1_fun_list(
+    AuthenticationSrcs = make_fun_spec_strs(
             couch_config:get("httpd", "authentication_handlers")),
     % for the path, use the raw path with the query string and fragment
     % removed, but URL quoting left intact
@@ -165,14 +216,16 @@ handle_request(MochiReq, DefaultFun,
         path_parts = [list_to_binary(couch_httpd:unquote(Part))
                 || Part <- string:tokens(Path, "/")],
         db_url_handlers = DbUrlHandlers,
-        design_url_handlers = DesignUrlHandlers
+        design_url_handlers = DesignUrlHandlers,
+        default_fun = DefaultFun,
+        url_handlers = UrlHandlers
     },
 
     HandlerFun = couch_util:dict_find(HandlerKey, UrlHandlers, DefaultFun),
 
     {ok, Resp} =
     try
-        case authenticate_request(HttpReq, AuthenticationFuns) of
+        case authenticate_request(HttpReq, AuthenticationSrcs) of
         #httpd{} = Req ->
             HandlerFun(Req);
         Response ->
@@ -184,6 +237,12 @@ handle_request(MochiReq, DefaultFun,
         throw:{invalid_json, S} ->
             ?LOG_ERROR("attempted upload of invalid JSON ~s", [S]),
             send_error(HttpReq, {bad_request, "invalid UTF-8 JSON"});
+        throw:unacceptable_encoding ->
+            ?LOG_ERROR("unsupported encoding method for the response", []),
+            send_error(HttpReq, {not_acceptable, "unsupported encoding"});
+        throw:bad_accept_encoding_value ->
+            ?LOG_ERROR("received invalid Accept-Encoding header", []),
+            send_error(HttpReq, bad_request);
         exit:normal ->
             exit(normal);
         throw:Error ->
@@ -208,8 +267,10 @@ handle_request(MochiReq, DefaultFun,
     couch_stats_collector:increment({httpd, requests}),
     {ok, Resp}.
 
-% Try authentication handlers in order until one returns a result
-authenticate_request(#httpd{user_ctx=#user_ctx{}} = Req, _AuthFuns) ->
+% Try authentication handlers in order until one sets a user_ctx
+% the auth funs also have the option of returning a response
+% move this to couch_httpd_auth?
+authenticate_request(#httpd{user_ctx=#user_ctx{}} = Req, _AuthSrcs) ->
     Req;
 authenticate_request(#httpd{} = Req, []) ->
     case couch_config:get("couch_httpd_auth", "require_valid_user", "false") of
@@ -218,9 +279,15 @@ authenticate_request(#httpd{} = Req, []) ->
     "false" ->
         Req#httpd{user_ctx=#user_ctx{}}
     end;
-authenticate_request(#httpd{} = Req, [AuthFun|Rest]) ->
-    authenticate_request(AuthFun(Req), Rest);
-authenticate_request(Response, _AuthFuns) ->
+authenticate_request(#httpd{} = Req, [AuthSrc|Rest]) ->
+    AuthFun = make_arity_1_fun(AuthSrc),
+    R = case AuthFun(Req) of
+        #httpd{user_ctx=#user_ctx{}=UserCtx}=Req2 ->
+            Req2#httpd{user_ctx=UserCtx#user_ctx{handler=?l2b(AuthSrc)}};
+        Else -> Else
+    end,
+    authenticate_request(R, Rest);
+authenticate_request(Response, _AuthSrcs) ->
     Response.
 
 increment_method_stats(Method) ->
@@ -244,7 +311,17 @@ header_value(#httpd{mochi_req=MochiReq}, Key, Default) ->
 primary_header_value(#httpd{mochi_req=MochiReq}, Key) ->
     MochiReq:get_primary_header_value(Key).
 
-serve_file(#httpd{mochi_req=MochiReq}=Req, RelativePath, DocumentRoot) ->
+accepted_encodings(#httpd{mochi_req=MochiReq}) ->
+    case MochiReq:accepted_encodings(["gzip", "identity"]) of
+    bad_accept_encoding_value ->
+        throw(bad_accept_encoding_value);
+    [] ->
+        throw(unacceptable_encoding);
+    EncList ->
+        EncList
+    end.
+
+serve_file(Req, RelativePath, DocumentRoot) ->
     serve_file(Req, RelativePath, DocumentRoot, []).
 
 serve_file(#httpd{mochi_req=MochiReq}=Req, RelativePath, DocumentRoot, ExtraHeaders) ->
@@ -578,6 +655,7 @@ send_error(_Req, {already_sent, Resp, _Error}) ->
 send_error(#httpd{mochi_req=MochiReq}=Req, Error) ->
     {Code, ErrorStr, ReasonStr} = error_info(Error),
     Headers = if Code == 401 ->
+        % this is where the basic auth popup is triggered
         case MochiReq:get_header_value("X-CouchDB-WWW-Authenticate") of
         undefined ->
             case couch_config:get("httpd", "WWW-Authenticate", nil) of

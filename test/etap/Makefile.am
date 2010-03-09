@@ -14,7 +14,7 @@ noinst_SCRIPTS = run
 noinst_DATA = test_util.beam
 
 %.beam: %.erl
-	erlc $<
+	$(ERLC) $<
 
 run: run.tpl
 	sed -e "s|%abs_top_srcdir%|@abs_top_srcdir@|g" \
@@ -58,7 +58,12 @@ EXTRA_DIST = \
     110-replication-httpc.t \
     111-replication-changes-feed.t \
     112-replication-missing-revs.t \
+    113-replication-attachment-comp.t \
     120-stats-collect.t \
     121-stats-aggregates.cfg \
     121-stats-aggregates.ini \
-    121-stats-aggregates.t
+    121-stats-aggregates.t \
+    130-attachments-md5.t \
+    140-attachment-comp.t \
+    150-invalid-view-seq.t \
+    160-vhosts.t

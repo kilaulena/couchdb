@@ -13,16 +13,17 @@
 -module(couch_db).
 -behaviour(gen_server).
 
--export([open/2,close/1,create/2,start_compact/1,get_db_info/1,get_design_docs/1]).
+-export([open/2,open_int/2,close/1,create/2,start_compact/1,get_db_info/1,get_design_docs/1]).
 -export([open_ref_counted/2,is_idle/1,monitor/1,count_changes_since/2]).
 -export([update_doc/3,update_doc/4,update_docs/4,update_docs/2,update_docs/3,delete_doc/3]).
 -export([get_doc_info/2,open_doc/2,open_doc/3,open_doc_revs/4]).
--export([set_revs_limit/2,get_revs_limit/1,register_update_notifier/3]).
+-export([set_revs_limit/2,get_revs_limit/1]).
 -export([get_missing_revs/2,name/1,doc_to_tree/1,get_update_seq/1,get_committed_update_seq/1]).
 -export([enum_docs/4,enum_docs_since/5]).
 -export([enum_docs_since_reduce_to_count/1,enum_docs_reduce_to_count/1]).
 -export([increment_update_seq/1,get_purge_seq/1,purge_docs/2,get_last_purged/1]).
--export([start_link/3,open_doc_int/3,set_admins/2,get_admins/1,ensure_full_commit/1]).
+-export([start_link/3,open_doc_int/3,ensure_full_commit/1]).
+-export([set_security/2,get_security/1]).
 -export([init/1,terminate/2,handle_call/3,handle_cast/2,code_change/3,handle_info/2]).
 -export([changes_since/5,changes_since/6,read_doc/2,new_revid/1]).
 
@@ -63,8 +64,26 @@ open_db_file(Filepath, Options) ->
 create(DbName, Options) ->
     couch_server:create(DbName, Options).
 
-open(DbName, Options) ->
+% this is for opening a database for internal purposes like the replicator
+% or the view indexer. it never throws a reader error.
+open_int(DbName, Options) ->
     couch_server:open(DbName, Options).
+
+% this should be called anytime an http request opens the database.
+% it ensures that the http userCtx is a valid reader
+open(DbName, Options) ->
+    case couch_server:open(DbName, Options) of
+        {ok, Db} ->
+            try
+                check_is_reader(Db),
+                {ok, Db}
+            catch
+                throw:Error ->
+                    close(Db),
+                    throw(Error)
+            end;
+        Else -> Else
+    end.
 
 ensure_full_commit(#db{update_pid=UpdatePid,instance_start_time=StartTime}) ->
     ok = gen_server:call(UpdatePid, full_commit, infinity),
@@ -82,9 +101,6 @@ is_idle(MainPid) ->
 
 monitor(#db{main_pid=MainPid}) ->
     erlang:monitor(process, MainPid).
-
-register_update_notifier(#db{main_pid=Pid}, Seq, Fun) ->
-    gen_server:call(Pid, {register_update_notifier, Seq, Fun}).
 
 start_compact(#db{update_pid=Pid}) ->
     gen_server:cast(Pid, start_compact).
@@ -221,22 +237,88 @@ get_design_docs(#db{fulldocinfo_by_id_btree=Btree}=Db) ->
         [], [{start_key, <<"_design/">>}, {end_key_gt, <<"_design0">>}]),
     {ok, Docs}.
 
-check_is_admin(#db{admins=Admins, user_ctx=#user_ctx{name=Name,roles=Roles}}) ->
-    DbAdmins = [<<"_admin">> | Admins],
-    case DbAdmins -- [Name | Roles] of
-    DbAdmins -> % same list, not an admin
-        throw({unauthorized, <<"You are not a db or server admin.">>});
+check_is_admin(#db{user_ctx=#user_ctx{name=Name,roles=Roles}}=Db) ->
+    {Admins} = get_admins(Db),
+    AdminRoles = [<<"_admin">> | proplists:get_value(<<"roles">>, Admins, [])],
+    AdminNames = proplists:get_value(<<"names">>, Admins,[]),
+    case AdminRoles -- Roles of
+    AdminRoles -> % same list, not an admin role
+        case AdminNames -- [Name] of
+        AdminNames -> % same names, not an admin
+            throw({unauthorized, <<"You are not a db or server admin.">>});
+        _ ->
+            ok
+        end;
     _ ->
         ok
     end.
 
-get_admins(#db{admins=Admins}) ->
-    Admins.
+check_is_reader(#db{user_ctx=#user_ctx{name=Name,roles=Roles}=UserCtx}=Db) ->
+    case (catch check_is_admin(Db)) of
+    ok -> ok;
+    _ ->
+        {Readers} = get_readers(Db),
+        ReaderRoles = proplists:get_value(<<"roles">>, Readers,[]),
+        WithAdminRoles = [<<"_admin">> | ReaderRoles],
+        ReaderNames = proplists:get_value(<<"names">>, Readers,[]),
+        case ReaderRoles ++ ReaderNames of 
+        [] -> ok; % no readers == public access
+        _Else ->
+            case WithAdminRoles -- Roles of
+            WithAdminRoles -> % same list, not an reader role
+                case ReaderNames -- [Name] of
+                ReaderNames -> % same names, not a reader
+                    ?LOG_DEBUG("Not a reader: UserCtx ~p vs Names ~p Roles ~p",[UserCtx, ReaderNames, WithAdminRoles]),
+                    throw({unauthorized, <<"You are not authorized to access this db.">>});
+                _ ->
+                    ok
+                end;
+            _ ->
+                ok
+            end
+        end
+    end.
 
-set_admins(#db{update_pid=Pid}=Db, Admins) when is_list(Admins) ->
+get_admins(#db{security=SecProps}) ->
+    proplists:get_value(<<"admins">>, SecProps, {[]}).
+
+get_readers(#db{security=SecProps}) ->
+    proplists:get_value(<<"readers">>, SecProps, {[]}).
+
+get_security(#db{security=SecProps}) ->
+    {SecProps}.
+
+set_security(#db{update_pid=Pid}=Db, {NewSecProps}) when is_list(NewSecProps) ->
     check_is_admin(Db),
-    gen_server:call(Pid, {set_admins, Admins}, infinity).
+    ok = validate_security_object(NewSecProps),
+    ok = gen_server:call(Pid, {set_security, NewSecProps}, infinity),
+    {ok, _} = ensure_full_commit(Db),
+    ok;
+set_security(_, _) ->
+    throw(bad_request).
 
+validate_security_object(SecProps) ->
+    Admins = proplists:get_value(<<"admins">>, SecProps, {[]}),
+    Readers = proplists:get_value(<<"readers">>, SecProps, {[]}),
+    ok = validate_names_and_roles(Admins),
+    ok = validate_names_and_roles(Readers),
+    ok.
+
+% validate user input
+validate_names_and_roles({Props}) when is_list(Props) ->
+    case proplists:get_value(<<"names">>,Props,[]) of
+    Ns when is_list(Ns) ->
+            [throw("names must be a JSON list of strings") ||N <- Ns, not is_binary(N)],
+            Ns;
+    _ -> throw("names must be a JSON list of strings")
+    end,
+    case proplists:get_value(<<"roles">>,Props,[]) of
+    Rs when is_list(Rs) ->
+        [throw("roles must be a JSON list of strings") ||R <- Rs, not is_binary(R)],
+        Rs;
+    _ -> throw("roles must be a JSON list of strings")
+    end,
+    ok.
 
 get_revs_limit(#db{revs_limit=Limit}) ->
     Limit.
@@ -258,7 +340,11 @@ update_doc(Db, Doc, Options, UpdateType) ->
     {ok, [{ok, NewRev}]} ->
         {ok, NewRev};
     {ok, [Error]} ->
-        throw(Error)
+        throw(Error);
+    {ok, []} ->
+        % replication success
+        {Pos, [RevId | _]} = Doc#doc.revs,
+        {ok, {Pos, RevId}}
     end.
 
 update_docs(Db, Docs) ->
@@ -285,18 +371,8 @@ group_alike_docs([Doc|Rest], [Bucket|RestBuckets]) ->
        group_alike_docs(Rest, [[Doc]|[Bucket|RestBuckets]])
     end.
 
-
-validate_doc_update(#db{user_ctx=UserCtx, admins=Admins},
-        #doc{id= <<"_design/",_/binary>>}, _GetDiskDocFun) ->
-    UserNames = [UserCtx#user_ctx.name | UserCtx#user_ctx.roles],
-    % if the user is a server admin or db admin, allow the save
-    case length(UserNames -- [<<"_admin">> | Admins]) =:= length(UserNames) of
-    true ->
-        % not an admin
-        {unauthorized, <<"You are not a server or database admin.">>};
-    false ->
-        ok
-    end;
+validate_doc_update(#db{}=Db, #doc{id= <<"_design/",_/binary>>}, _GetDiskDocFun) ->
+    catch check_is_admin(Db);
 validate_doc_update(#db{validate_doc_funs=[]}, _Doc, _GetDiskDocFun) ->
     ok;
 validate_doc_update(_Db, #doc{id= <<"_local/",_/binary>>}, _GetDiskDocFun) ->
@@ -304,7 +380,8 @@ validate_doc_update(_Db, #doc{id= <<"_local/",_/binary>>}, _GetDiskDocFun) ->
 validate_doc_update(Db, Doc, GetDiskDocFun) ->
     DiskDoc = GetDiskDocFun(),
     JsonCtx = couch_util:json_user_ctx(Db),
-    try [case Fun(Doc, DiskDoc, JsonCtx) of
+    SecObj = get_security(Db),
+    try [case Fun(Doc, DiskDoc, JsonCtx, SecObj) of
             ok -> ok;
             Error -> throw(Error)
         end || Fun <- Db#db.validate_doc_funs],
@@ -694,17 +771,17 @@ flush_att(Fd, #att{data={Fd0, _}}=Att) when Fd0 == Fd ->
     Att;
 
 flush_att(Fd, #att{data={OtherFd,StreamPointer}, md5=InMd5}=Att) ->
-    {NewStreamData, Len, Md5} = 
+    {NewStreamData, Len, _IdentityLen, Md5, IdentityMd5} =
             couch_stream:copy_to_new_stream(OtherFd, StreamPointer, Fd),
-    check_md5(Md5, InMd5),
-    Att#att{data={Fd, NewStreamData}, md5=Md5, len=Len};
+    check_md5(IdentityMd5, InMd5),
+    Att#att{data={Fd, NewStreamData}, md5=Md5, att_len=Len, disk_len=Len};
 
 flush_att(Fd, #att{data=Data}=Att) when is_binary(Data) ->
     with_stream(Fd, Att, fun(OutputStream) ->
         couch_stream:write(OutputStream, Data)
     end);
 
-flush_att(Fd, #att{data=Fun,len=undefined}=Att) when is_function(Fun) ->
+flush_att(Fd, #att{data=Fun,att_len=undefined}=Att) when is_function(Fun) ->
     with_stream(Fd, Att, fun(OutputStream) ->
         % Fun(MaxChunkSize, WriterFun) must call WriterFun
         % once for each chunk of the attachment,
@@ -726,9 +803,9 @@ flush_att(Fd, #att{data=Fun,len=undefined}=Att) when is_function(Fun) ->
             end, ok)
     end);
 
-flush_att(Fd, #att{data=Fun,len=Len}=Att) when is_function(Fun) ->
+flush_att(Fd, #att{data=Fun,att_len=AttLen}=Att) when is_function(Fun) ->
     with_stream(Fd, Att, fun(OutputStream) ->
-        write_streamed_attachment(OutputStream, Fun, Len)
+        write_streamed_attachment(OutputStream, Fun, AttLen)
     end).
 
 % From RFC 2616 3.6.1 - Chunked Transfer Coding
@@ -741,8 +818,17 @@ flush_att(Fd, #att{data=Fun,len=Len}=Att) when is_function(Fun) ->
 % is present in the request, but there is no Content-MD5
 % trailer, we're free to ignore this inconsistency and
 % pretend that no Content-MD5 exists.
-with_stream(Fd, #att{md5=InMd5}=Att, Fun) ->
-    {ok, OutputStream} = couch_stream:open(Fd),
+with_stream(Fd, #att{md5=InMd5,type=Type,comp=AlreadyComp}=Att, Fun) ->
+    {ok, OutputStream} = case (not AlreadyComp) andalso
+        couch_util:compressible_att_type(Type) of
+    true ->
+        CompLevel = list_to_integer(
+            couch_config:get("attachments", "compression_level", "0")
+        ),
+        couch_stream:open(Fd, CompLevel);
+    _ ->
+        couch_stream:open(Fd)
+    end,
     ReqMd5 = case Fun(OutputStream) of
         {md5, FooterMd5} ->
             case InMd5 of
@@ -752,9 +838,22 @@ with_stream(Fd, #att{md5=InMd5}=Att, Fun) ->
         _ ->
             InMd5
     end,
-    {StreamInfo, Len, Md5} = couch_stream:close(OutputStream),
-    check_md5(Md5, ReqMd5),
-    Att#att{data={Fd,StreamInfo},len=Len,md5=Md5}.
+    {StreamInfo, Len, IdentityLen, Md5, IdentityMd5} =
+        couch_stream:close(OutputStream),
+    check_md5(IdentityMd5, ReqMd5),
+    {AttLen, DiskLen} = case AlreadyComp of
+    true ->
+        {Att#att.att_len, Att#att.disk_len};
+    _ ->
+        {Len, IdentityLen}
+    end,
+    Att#att{
+        data={Fd,StreamInfo},
+        att_len=AttLen,
+        disk_len=DiskLen,
+        md5=Md5,
+        comp=(AlreadyComp orelse (IdentityMd5 =/= Md5))
+    }.
 
 
 write_streamed_attachment(_Stream, _F, 0) ->
@@ -983,17 +1082,28 @@ make_doc(#db{fd=Fd}=Db, Id, Deleted, Bp, RevisionPath) ->
         {ok, {BodyData0, Atts0}} = read_doc(Db, Bp),
         {BodyData0,
             lists:map(
-                fun({Name,Type,Sp,Len,RevPos,Md5}) ->
+                fun({Name,Type,Sp,AttLen,DiskLen,RevPos,Md5,Comp}) ->
                     #att{name=Name,
                         type=Type,
-                        len=Len,
+                        att_len=AttLen,
+                        disk_len=DiskLen,
+                        md5=Md5,
+                        revpos=RevPos,
+                        data={Fd,Sp},
+                        comp=Comp};
+                ({Name,Type,Sp,AttLen,RevPos,Md5}) ->
+                    #att{name=Name,
+                        type=Type,
+                        att_len=AttLen,
+                        disk_len=AttLen,
                         md5=Md5,
                         revpos=RevPos,
                         data={Fd,Sp}};
-                ({Name,{Type,Sp,Len}}) ->
+                ({Name,{Type,Sp,AttLen}}) ->
                     #att{name=Name,
                         type=Type,
-                        len=Len,
+                        att_len=AttLen,
+                        disk_len=AttLen,
                         md5= <<>>,
                         revpos=0,
                         data={Fd,Sp}}

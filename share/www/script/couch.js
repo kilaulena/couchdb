@@ -121,7 +121,7 @@ function CouchDB(name, httpHeaders) {
       CouchDB.maybeThrowError(this.last_req);
       var results = JSON.parse(this.last_req.responseText);
       for (var i = 0; i < docs.length; i++) {
-        if(results[i].rev) {
+        if(results[i] && results[i].rev) {
           docs[i]._rev = results[i].rev;
         }
       }
@@ -243,6 +243,12 @@ function CouchDB(name, httpHeaders) {
     return JSON.parse(this.last_req.responseText);
   }
 
+  this.viewCleanup = function() {
+    this.last_req = this.request("POST", this.uri + "_view_cleanup");
+    CouchDB.maybeThrowError(this.last_req);
+    return JSON.parse(this.last_req.responseText);
+  }
+
   this.setDbProperty = function(propId, propValue) {
     this.last_req = this.request("PUT", this.uri + propId,{
       body:JSON.stringify(propValue)
@@ -257,16 +263,16 @@ function CouchDB(name, httpHeaders) {
     return JSON.parse(this.last_req.responseText);
   }
 
-  this.setAdmins = function(adminsArray) {
-    this.last_req = this.request("PUT", this.uri + "_admins",{
-      body:JSON.stringify(adminsArray)
+  this.setSecObj = function(secObj) {
+    this.last_req = this.request("PUT", this.uri + "_security",{
+      body:JSON.stringify(secObj)
     });
     CouchDB.maybeThrowError(this.last_req);
     return JSON.parse(this.last_req.responseText);
   }
 
-  this.getAdmins = function() {
-    this.last_req = this.request("GET", this.uri + "_admins");
+  this.getSecObj = function() {
+    this.last_req = this.request("GET", this.uri + "_security");
     CouchDB.maybeThrowError(this.last_req);
     return JSON.parse(this.last_req.responseText);
   }
@@ -315,12 +321,13 @@ function CouchDB(name, httpHeaders) {
 // CouchDB.* functions (except for calls to request itself).
 // Use this from callers to check HTTP status or header values of requests.
 CouchDB.last_req = null;
+CouchDB.urlPrefix = '';
 
-CouchDB.login = function(username, password) {
+CouchDB.login = function(name, password) {
   CouchDB.last_req = CouchDB.request("POST", "/_session", {
     headers: {"Content-Type": "application/x-www-form-urlencoded",
       "X-CouchDB-WWW-Authenticate": "Cookie"},
-    body: "username=" + encodeURIComponent(username) + "&password="
+    body: "name=" + encodeURIComponent(name) + "&password="
       + encodeURIComponent(password)
   });
   return JSON.parse(CouchDB.last_req.responseText);
@@ -334,60 +341,34 @@ CouchDB.logout = function() {
   return JSON.parse(CouchDB.last_req.responseText);
 }
 
-CouchDB.createUser = function(username, password, email, roles, basicAuth) {
-  var roles_str = ""
-  if (roles) {
-    for (var i=0; i< roles.length; i++) {
-      roles_str += "&roles=" + encodeURIComponent(roles[i]);
-    }
-  }
-  var headers = {"Content-Type": "application/x-www-form-urlencoded"};
-  if (basicAuth) {
-    headers['Authorization'] = basicAuth
-  } else {
-    headers['X-CouchDB-WWW-Authenticate'] = 'Cookie';
-  }
-
-  CouchDB.last_req = CouchDB.request("POST", "/_user/", {
-    headers: headers,
-    body: "username=" + encodeURIComponent(username) + "&password="
-    + encodeURIComponent(password) + "&email="
-    + encodeURIComponent(email) + roles_str
-  });
+CouchDB.session = function(options) {
+  options = options || {};
+  CouchDB.last_req = CouchDB.request("GET", "/_session", options);
+  CouchDB.maybeThrowError(CouchDB.last_req);
   return JSON.parse(CouchDB.last_req.responseText);
-}
+};
 
-CouchDB.updateUser = function(username, email, roles, password, old_password) {
-  var roles_str = ""
-  if (roles) {
-    for (var i=0; i< roles.length; i++) {
-      roles_str += "&roles=" + encodeURIComponent(roles[i]);
-    }
+CouchDB.user_prefix = "org.couchdb.user:";
+
+CouchDB.prepareUserDoc = function(user_doc, new_password) {
+  user_doc._id = user_doc._id || CouchDB.user_prefix + user_doc.name;
+  if (new_password) {
+    // handle the password crypto
+    user_doc.salt = CouchDB.newUuids(1)[0];
+    user_doc.password_sha = hex_sha1(new_password + user_doc.salt);
   }
-
-  var body = "email="+ encodeURIComponent(email)+ roles_str;
-
-  if (typeof(password) != "undefined" && password) {
-    body += "&password=" + password;
+  user_doc.type = "user";
+  if (!user_doc.roles) {
+    user_doc.roles = []
   }
-
-  if (typeof(old_password) != "undefined" && old_password) {
-    body += "&old_password=" + old_password;
-  }
-
-  CouchDB.last_req = CouchDB.request("PUT", "/_user/"+encodeURIComponent(username), {
-    headers: {"Content-Type": "application/x-www-form-urlencoded",
-      "X-CouchDB-WWW-Authenticate": "Cookie"},
-    body: body
-  });
-  return JSON.parse(CouchDB.last_req.responseText);
-}
+  return user_doc;
+};
 
 CouchDB.allDbs = function() {
   CouchDB.last_req = CouchDB.request("GET", "/_all_dbs");
   CouchDB.maybeThrowError(CouchDB.last_req);
   return JSON.parse(CouchDB.last_req.responseText);
-}
+};
 
 CouchDB.allDesignDocs = function() {
   var ddocs = {}, dbs = CouchDB.allDbs();
@@ -431,6 +412,9 @@ CouchDB.newXhr = function() {
 CouchDB.request = function(method, uri, options) {
   options = options || {};
   var req = CouchDB.newXhr();
+  if(uri.substr(0, "http://".length) != "http://") {
+    uri = CouchDB.urlPrefix + uri
+  }
   req.open(method, uri, false);
   if (options.headers) {
     var headers = options.headers;

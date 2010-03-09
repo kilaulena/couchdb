@@ -140,28 +140,22 @@
         location.href = "document.html?" + encodeURIComponent(db.name);
       }
 
-      this.compactDatabase = function() {
-        $.showDialog("dialog/_compact_database.html", {
+      this.compactAndCleanup = function() {
+        $.showDialog("dialog/_compact_cleanup.html", {
           submit: function(data, callback) {
-            db.compact({
-              success: function(resp) {
-                callback();
-              }
-            });
-          }
-        });
-      }
-
-      this.compactView = function() {
-        var groupname = page.viewName.substring(8,
-            page.viewName.indexOf('/_view'));
-        $.showDialog("dialog/_compact_view.html", {
-          submit: function(data, callback) {
-            db.compactView(groupname, {
-              success: function(resp) {
-                callback();
-              }
-            });
+            switch (data.action) {
+              case "compact_database":
+                db.compact({success: function(resp) { callback() }});
+                break;
+              case "compact_views":
+                var groupname = page.viewName.substring(8,
+                    page.viewName.indexOf("/_view"));
+                db.compactView(groupname, {success: function(resp) { callback() }});
+                break;
+              case "view_cleanup": 
+                db.viewCleanup({success: function(resp) { callback() }});
+                break;
+            }
           }
         });
       }
@@ -181,6 +175,76 @@
                 }
               }
             });
+          }
+        });
+      }
+      
+      this.databaseSecurity = function() {
+        $.showDialog("dialog/_database_security.html", {
+          load : function(d) {
+            db.getDbProperty("_security", {
+              success: function(r) {
+                ["admin", "reader"].forEach(function(key) {
+                  var names = [];
+                  var roles = [];
+
+                  if (r && typeof r[key + "s"] === "object") {
+                    if ($.isArray(r[key + "s"]["names"])) {
+                      names = r[key + "s"]["names"];
+                    }
+                    if ($.isArray(r[key + "s"]["roles"])) {
+                      roles = r[key + "s"]["roles"];
+                    }
+                  }
+
+                  $("input[name=" + key + "_names]", d).val(JSON.stringify(names));
+                  $("input[name=" + key + "_roles]", d).val(JSON.stringify(roles));
+                });
+              }
+            });
+          },
+          // maybe this should be 2 forms
+          submit: function(data, callback) {
+            var errors = {};
+            var secObj = {
+              admins: {
+                names: [],
+                roles: []
+              },
+              readers: {
+                names: [],
+                roles: []
+              }
+            };
+
+            ["admin", "reader"].forEach(function(key) {
+              var names, roles;
+
+              try {
+                names = JSON.parse(data[key + "_names"]);
+              } catch(e) { }
+              try {
+                roles = JSON.parse(data[key + "_roles"]);
+              } catch(e) { }
+
+              if ($.isArray(names)) {
+                secObj[key + "s"]["names"] = names;
+              } else {
+                errors[key + "_names"] = "The " + key +
+                  " names must be an array of strings";
+              }
+              if ($.isArray(roles)) {
+                secObj[key + "s"]["roles"] = roles;
+              } else {
+                errors[key + "_roles"] = "The " + key +
+                  " roles must be an array of strings";
+              }
+            });
+
+            if ($.isEmptyObject(errors)) {
+              db.setDbProperty("_security", secObj);
+            }
+            callback(errors);
           }
         });
       }
@@ -282,7 +346,8 @@
                 fill_language();
               }
             }, "native_query_servers");
-          }
+          },
+          error : function() {}
         }, "query_servers");
       }
 
@@ -715,7 +780,7 @@
 
     },
 
-    // Page class for browse/database.html
+    // Page class for browse/document.html
     CouchDocumentPage: function() {
       var urlParts = location.search.substr(1).split("/");
       var dbName = decodeURIComponent(urlParts.shift());
@@ -761,7 +826,8 @@
           $(this).html($("<pre></pre>").html($.futon.formatJSON(page.doc, {html: true})))
             .makeEditable({allowEmpty: false,
               createInput: function(value) {
-                return $("<textarea rows='8' cols='80' spellcheck='false'></textarea>").enableTabInsertion();
+                var rows = value.split("\n").length;
+                return $("<textarea rows='" + rows + "' cols='80' spellcheck='false'></textarea>").enableTabInsertion();
               },
               prepareInput: function(input) {
                 $(input).makeResizable({vertical: true});
@@ -1029,10 +1095,11 @@
 
         row.find("td").makeEditable({acceptOnBlur: false, allowEmpty: true,
           createInput: function(value) {
+            value = doc[row.data("name")];
             var elem = $(this);
             if (elem.find("dl").length > 0 ||
                 elem.find("code").is(".array, .object") ||
-                elem.find("code.string").text().length > 60) {
+                typeof(value) == "string" && (value.length > 60 || value.match(/\n/))) {
               return $("<textarea rows='1' cols='40' spellcheck='false'></textarea>");
             }
             return $("<input type='text' spellcheck='false'>");
@@ -1157,7 +1224,7 @@
           return false;
         }).prependTo($("a", li));
       }
-    }
+    },
 
   });
 

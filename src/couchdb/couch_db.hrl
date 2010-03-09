@@ -73,7 +73,9 @@
     user_ctx,
     req_body = undefined,
     design_url_handlers,
-    auth
+    auth,
+    default_fun,
+    url_handlers
     }).
 
 
@@ -99,16 +101,21 @@
     {
     name,
     type,
-    len,
+    att_len,
+    disk_len, % length of the attachment in uncompressed form
+              % differs from at_len when comp =:= true
     md5= <<>>,
     revpos=0,
-    data
+    data,
+    comp=false  % gzip compression Y/N
     }).
 
 
 -record(user_ctx,
-    {name=null,
-    roles=[]
+    {
+    name=null,
+    roles=[],
+    handler
     }).
 
 % This should be updated anytime a header change happens that requires more
@@ -121,7 +128,7 @@
 % if the disk revision is incremented, then new upgrade logic will need to be
 % added to couch_db_updater:init_db.
 
--define(LATEST_DISK_VERSION, 4).
+-define(LATEST_DISK_VERSION, 5).
 
 -record(db_header,
     {disk_version = ?LATEST_DISK_VERSION,
@@ -132,7 +139,7 @@
      local_docs_btree_state = nil,
      purge_seq = 0,
      purged_docs = nil,
-     admins_ptr = nil,
+     security_ptr = nil,
      revs_limit = 1000
     }).
 
@@ -152,8 +159,8 @@
     name,
     filepath,
     validate_doc_funs = [],
-    admins = [],
-    admins_ptr = nil,
+    security = [],
+    security_ptr = nil,
     user_ctx = #user_ctx{},
     waiting_delayed_commit = nil,
     revs_limit = 1000,
@@ -248,7 +255,13 @@
     body = nil,
     options = [
         {response_format,binary},
-        {inactivity_timeout, 30000}
+        {inactivity_timeout, 30000},
+        {max_sessions, list_to_integer(
+            couch_config:get("replicator", "max_http_sessions", "10")
+        )},
+        {max_pipeline_size, list_to_integer(
+            couch_config:get("replicator", "max_http_pipeline_size", "10")
+        )}
     ],
     retries = 10,
     pause = 500,
@@ -257,3 +270,15 @@
 
 % small value used in revision trees to indicate the revision isn't stored
 -define(REV_MISSING, []).
+
+-record(changes_args, {
+    feed = "normal",
+    dir = fwd,
+    since = 0,
+    limit = 1000000000000000,
+    style = main_only,
+    heartbeat,
+    timeout,
+    filter = "",
+    include_docs = false
+}).

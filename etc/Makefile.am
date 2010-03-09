@@ -28,7 +28,7 @@ nobase_sysconf_DATA = $(default_sysconf_data) $(init_sysconf_data)
 EXTRA_DIST = $(init_sysconf_data)
 
 if WINDOWS
-EXTRA_DIST += windows/setup-couchdb-@version@.exe.md5
+EXTRA_DIST += windows/setup-couchdb-@version@.exe.md5 windows/setup-couchdb-@version@.exe.sha
 endif
 
 CLEANFILES = $(init_DATA) $(default_sysconf_data) $(launchd_DATA)
@@ -93,12 +93,14 @@ windows/couchdb.iss: windows/couchdb.iss.tpl FORCE
 # The installer depends on all files, not just the source .iss file,
 # so we trick make into always building it with the FORCE pattern...
 windows/setup-couchdb-@version@.exe: windows/couchdb.iss windows/README.txt FORCE
-	$(INNO_COMPILER_EXECUTABLE) /q $<
+	"$(INNO_COMPILER_EXECUTABLE)" /q $<
 	@echo Windows Installer is at: `cygpath -a -w windows/setup-couchdb-@version@.exe`
 
 windows/setup-couchdb-@version@.exe.md5: windows/setup-couchdb-@version@.exe
-	md5sum $< > $@
-	@echo Windows Installer is at: `cygpath -a -w windows/setup-couchdb-@version@.exe`
+	cd windows && md5sum ./$(<F) > $(@F)
+
+windows/setup-couchdb-@version@.exe.sha: windows/setup-couchdb-@version@.exe
+	cd windows && sha1sum ./$(<F) > $(@F)
 
 FORCE:
 

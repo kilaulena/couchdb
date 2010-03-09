@@ -13,6 +13,7 @@
 JS_FILE = server/main.js
 
 JS_FILE_COMPONENTS = \
+    server/json2.js \
     server/filter.js \
     server/mimeparse.js \
     server/render.js \
@@ -33,16 +34,23 @@ CLEANFILES = $(JS_FILE)
 
 EXTRA_DIST = $(JS_FILE_COMPONENTS) $(JS_FILE_COMPONENTS_LAST)
 
+nobase_localdata_SCRIPTS = \
+    $(JS_FILE)
+
 nobase_dist_localdata_DATA = \
-    $(JS_FILE) \
     www/config.html \
     www/couch_tests.html \
     www/custom_test.html \
     www/database.html \
-    www/dialog/_compact_database.html \
+    www/dialog/_admin_party.html \
+    www/dialog/_compact_cleanup.html \
+    www/dialog/_create_admin.html \
+    www/dialog/_login.html \
+    www/dialog/_signup.html \
     www/dialog/_create_database.html \
     www/dialog/_delete_database.html \
     www/dialog/_delete_document.html \
+    www/dialog/_database_security.html \
     www/dialog/_save_view_as.html \
     www/dialog/_upload_attachment.html \
     www/document.html \
@@ -56,6 +64,7 @@ nobase_dist_localdata_DATA = \
     www/image/delete.png \
     www/image/grippie.gif \
     www/image/hgrad.gif \
+    www/image/key.png \
     www/image/load.png \
     www/image/logo.png \
     www/image/order-asc.gif \
@@ -128,7 +137,9 @@ nobase_dist_localdata_DATA = \
     www/script/test/lots_of_docs.js \
     www/script/test/multiple_rows.js \
     www/script/test/oauth.js \
+	www/script/test/proxyauth.js \
     www/script/test/purge.js \
+    www/script/test/reader_acl.js \
     www/script/test/recreate_doc.js \
     www/script/test/reduce.js \
     www/script/test/reduce_builtin.js \

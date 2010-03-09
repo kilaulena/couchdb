@@ -301,4 +301,157 @@ couchTests.replication = function(debug) {
   });
   TEquals("test_suite_db_b", dbB.info().db_name,
     "Target database should exist");
+
+  // continuous
+  var continuousResult = CouchDB.replicate(dbA.name, "test_suite_db_b", {
+    body: {"continuous": true}
+  });
+  T(continuousResult.ok)
+  T(continuousResult._local_id)
+
+  var cancelResult = CouchDB.replicate(dbA.name, "test_suite_db_b", {
+    body: {"cancel": true}
+  });
+  T(cancelResult.ok)
+  T(continuousResult._local_id == cancelResult._local_id)
+
+  try {
+   var cancelResult2 = CouchDB.replicate(dbA.name, "test_suite_db_b", {
+     body: {"cancel": true}
+   });
+  } catch (e) {
+    T(e.error == "not_found")
+  }
+  // test replication object option doc_ids
+
+  var dbA = new CouchDB("test_suite_rep_docs_db_a", {"X-Couch-Full-Commit":"false"});
+  var dbB = new CouchDB("test_suite_rep_docs_db_b", {"X-Couch-Full-Commit":"false"});
+
+  dbA.deleteDb();
+  dbA.createDb();
+  dbB.deleteDb();
+  dbB.createDb();
+
+  T(dbA.save({_id:"foo1",value:"a"}).ok);
+  T(dbA.save({_id:"foo2",value:"b"}).ok);
+  T(dbA.save({_id:"foo3",value:"c"}).ok);
+
+  var dbPairs = [
+    {source:"test_suite_rep_docs_db_a",
+      target:"test_suite_rep_docs_db_b"},
+    {source:"test_suite_rep_docs_db_a",
+      target:"http://" + host + "/test_suite_rep_docs_db_b"},
+    {source:"http://" + host + "/test_suite_rep_docs_db_a",
+      target:"test_suite_rep_docs_db_b"},
+    {source:"http://" + host + "/test_suite_rep_docs_db_a",
+      target:"http://" + host + "/test_suite_rep_docs_db_b"}
+  ];
+
+  for (var i = 0; i < dbPairs.length; i++) {
+    var dbA = dbPairs[i].source;
+    var dbB = dbPairs[i].target;
+
+    var repResult = CouchDB.replicate(dbA, dbB, {
+      body: {"doc_ids": ["foo1", "foo3", "foo666"]}
+    });
+
+    T(repResult.ok);
+    T(repResult.docs_written === 2);
+    T(repResult.docs_read === 2);
+    T(repResult.doc_write_failures === 0);
+
+    dbB = new CouchDB("test_suite_rep_docs_db_b");
+
+    var docFoo1 = dbB.open("foo1");
+    T(docFoo1 !== null);
+    T(docFoo1.value === "a");
+
+    var docFoo2 = dbB.open("foo2");
+    T(docFoo2 === null);
+
+    var docFoo3 = dbB.open("foo3");
+    T(docFoo3 !== null);
+    T(docFoo3.value === "c");
+
+    var docFoo666 = dbB.open("foo666");
+    T(docFoo666 === null);
+  }
+
+  // test filtered replication
+
+  var sourceDb = new CouchDB(
+    "test_suite_filtered_rep_db_a", {"X-Couch-Full-Commit":"false"}
+  );
+
+  sourceDb.deleteDb();
+  sourceDb.createDb();
+
+  T(sourceDb.save({_id:"foo1",value:1}).ok);
+  T(sourceDb.save({_id:"foo2",value:2}).ok);
+  T(sourceDb.save({_id:"foo3",value:3}).ok);
+  T(sourceDb.save({_id:"foo4",value:4}).ok);
+  T(sourceDb.save({
+    "_id": "_design/mydesign",
+    "language" : "javascript",
+    "filters" : {
+      "myfilter" : (function(doc, req) {
+        if (doc.value < Number(req.query.maxvalue)) {
+          return true;
+        } else {
+          return false;
+        }
+      }).toString()
+    }
+  }).ok);
+
+  var dbPairs = [
+    {source:"test_suite_filtered_rep_db_a",
+      target:"test_suite_filtered_rep_db_b"},
+    {source:"test_suite_filtered_rep_db_a",
+      target:"http://" + host + "/test_suite_filtered_rep_db_b"},
+    {source:"http://" + host + "/test_suite_filtered_rep_db_a",
+      target:"test_suite_filtered_rep_db_b"},
+    {source:"http://" + host + "/test_suite_filtered_rep_db_a",
+      target:"http://" + host + "/test_suite_filtered_rep_db_b"}
+  ];
+
+  for (var i = 0; i < dbPairs.length; i++) {
+    var targetDb = new CouchDB("test_suite_filtered_rep_db_b");
+    targetDb.deleteDb();
+    targetDb.createDb();
+
+    var dbA = dbPairs[i].source;
+    var dbB = dbPairs[i].target;
+
+    var repResult = CouchDB.replicate(dbA, dbB, {
+      body: {
+        "filter" : "mydesign/myfilter",
+        "query_params" : {
+          "maxvalue": "3"
+        }
+      }
+    });
+
+    T(repResult.ok);
+    T($.isArray(repResult.history));
+    T(repResult.history.length === 1);
+    T(repResult.history[0].docs_written === 2);
+    T(repResult.history[0].docs_read === 2);
+    T(repResult.history[0].doc_write_failures === 0);
+
+    var docFoo1 = targetDb.open("foo1");
+    T(docFoo1 !== null);
+    T(docFoo1.value === 1);
+
+    var docFoo2 = targetDb.open("foo2");
+    T(docFoo2 !== null);
+    T(docFoo2.value === 2);
+
+    var docFoo3 = targetDb.open("foo3");
+    T(docFoo3 === null);
+
+    var docFoo4 = targetDb.open("foo4");
+    T(docFoo4 === null);
+  }
+
 };
