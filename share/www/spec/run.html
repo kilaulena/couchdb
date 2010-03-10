@@ -1,26 +1,26 @@
 <html>
-	<head>
-		<link type="text/css" rel="stylesheet" href="../script/jspec/jspec.css" />
-		<script src="../script/jquery.js"></script>
-		<script src="../script/jspec/jspec.js"></script>
-		<script src="../script/jspec/jspec.jquery.js"></script>
-		<script src="../script/jspec/jspec.timers.js"></script>
-		<script src="../script/jspec/jspec.xhr.js"></script>
-		<script src="../script/couch.js"></script>
-		<script src="../script/jquery.couch.js"></script>
-		<script>
-			function runSuites() {
-				JSpec
-				.exec('couch_js_spec.js')
+  <head>
+    <link type="text/css" rel="stylesheet" href="../script/jspec/jspec.css" />
+    <script src="../script/jquery.js"></script>
+    <script src="../script/jspec/jspec.js"></script>
+    <script src="../script/jspec/jspec.jquery.js"></script>
+    <script src="../script/jspec/jspec.timers.js"></script>
+    <script src="../script/jspec/jspec.xhr.js"></script>
+    <script src="../script/couch.js"></script>
+    <script src="../script/jquery.couch.js"></script>
+    <script>
+      function runSuites() {
+        JSpec
+        .exec('couch_js_spec.js')
         .exec('jquery_couch_js_spec.js')
         .run()
-				.report()
-			}
-		</script>
-	</head>
-	<body class="jspec" onLoad="runSuites();">
-		<div id="jspec-top"><h2 id="jspec-title">JSpec <em><script>document.write(JSpec.version)</script></em></h2></div>
-		<div id="jspec"></div>
-		<div id="jspec-bottom"></div>
-	</body>
+        .report()
+      }
+    </script>
+  </head>
+  <body class="jspec" onLoad="runSuites();">
+    <div id="jspec-top"><h2 id="jspec-title">JSpec <em><script>document.write(JSpec.version)</script></em></h2></div>
+    <div id="jspec"></div>
+    <div id="jspec-bottom"></div>
+  </body>
 </html>
