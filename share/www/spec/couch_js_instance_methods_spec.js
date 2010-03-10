@@ -15,6 +15,10 @@ describe 'CouchDB instance'
       // req.should.be_a XMLHttpRequest
       db.deleteDb();
     end
+    
+    it 'should do something with the options'
+      
+    end
   end
   
   describe '.createDb'   
@@ -42,22 +46,75 @@ describe 'CouchDB instance'
   end
   
   describe '.deleteDb'
-    it 'should delete the db'
+    before_each
       db.createDb();
+    end
+  
+    it 'should delete the db'
       db.deleteDb();
       db.last_req.status.should.eql 200
     end
     
     it 'should return the responseText of the request'
-      db.createDb();
       db.deleteDb().should.eql {"ok" : true}
     end
     
     it 'should result in a deleted db'
-      db.createDb();
       db.deleteDb();
       db.deleteDb();
       db.last_req.status.should.eql 404
+    end
+  end
+  
+  describe '.save'
+    before_each
+      doc = {"Name" : "Kara Thrace", "Callsign" : "Starbuck"};
+      db.createDb();
+    end
+  
+    after_each
+      db.deleteDb();
+    end
+  
+    it 'should save the document'
+      db.save(doc);
+      db.last_req.status.should.eql 201
+    end
+    
+    it 'should result in a saved document'
+      var response  = db.save(doc);
+      var saved_doc = db.open(response.id);
+      saved_doc.Name.should.eql "Kara Thrace"
+      saved_doc.Callsign.should.eql "Starbuck"
+    end
+    
+    it 'should return the responseText of the request'
+      db.save(doc).ok.should.be_true
+    end
+    
+    it 'should return ID and revision of the document'
+      var response = db.save(doc);
+      response.id.should.be_a String
+      response.id.length.should.be_greater_than 10
+      response.rev.should.be_a String
+      response.rev.length.should.be_greater_than 10
+    end
+    
+    it 'should save the document with the specified ID'
+      doc._id = "123";
+      var response = db.save(doc);
+      response.id.should.eql "123"
+    end
+    
+    // this isn't implemented, I think it would be nice to have?
+    it 'should save the document with a number as ID'
+      doc._id = 123;
+      var response = db.save(doc);
+      response.id.should.eql 123
+    end
+    
+    it 'should do something with the options'
+      
     end
   end
 end
