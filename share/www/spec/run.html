@@ -11,8 +11,9 @@
     <script>
       function runSuites() {
         JSpec
+        .exec('couch_js_instance_methods_crud_spec.js')
+        .exec('couch_js_instance_methods_misc_spec.js')
         .exec('couch_js_class_methods_spec.js')
-        .exec('couch_js_instance_methods_spec.js')
         // .exec('jquery_couch_js_spec.js')
         .run()
         .report()

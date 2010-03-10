@@ -1,3 +1,5 @@
+// Specs for couch.js lines 1-130
+
 describe 'CouchDB class'
   before_each
     db = new CouchDB("spec_db", {"X-Couch-Full-Commit":"false"});
