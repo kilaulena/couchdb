@@ -22,10 +22,10 @@ function CouchDB(name, httpHeaders) {
   this.last_req = null;
 
   this.request = function(method, uri, requestOptions) {
-      requestOptions = requestOptions || {}
-      requestOptions.headers = combine(requestOptions.headers, httpHeaders)
-      return CouchDB.request(method, uri, requestOptions);
-    }
+    requestOptions = requestOptions || {}
+    requestOptions.headers = combine(requestOptions.headers, httpHeaders)
+    return CouchDB.request(method, uri, requestOptions);
+  }
 
   // Creates the database on the server
   this.createDb = function() {
