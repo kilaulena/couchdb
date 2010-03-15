@@ -68,7 +68,7 @@ describe 'CouchDB instance'
     end
   end
   
-  describe 'docs'
+  describe 'document methods'
     before_each
       doc = {"Name" : "Kara Thrace", "Callsign" : "Starbuck"};
       db.createDb();
@@ -120,13 +120,13 @@ describe 'CouchDB instance'
       
       end
     end
-  
+      
     describe '.open'
       before_each
         doc._id = "123";
         db.save(doc);
       end
-  
+      
       it 'should open the document'
         db.open("123").should.eql doc
       end
@@ -139,7 +139,7 @@ describe 'CouchDB instance'
       
       end
     end
-  
+      
     describe '.deleteDoc'
       before_each
         doc._id = "123";
@@ -147,7 +147,7 @@ describe 'CouchDB instance'
         delete_response = db.deleteDoc({_id : "123", _rev : saved_doc.rev});
       end
       
-      it 'should delete the document'
+      it 'should send a successful request'
         db.last_req.status.should.eql 200
       end
     
@@ -171,6 +171,55 @@ describe 'CouchDB instance'
         delete_response.ok.should.be_true
         delete_response.id.should.eql "123"
         delete_response.should.have_property 'rev'
+      end
+    end
+  
+    describe '.deleteDocAttachment'
+      before_each
+        doc._id = "123";
+        doc._attachments = {
+          "friend.txt" : {
+            "content_type": "text\/plain",
+            "data": "TGVlIEFkYW1hIGlzIGEgZm9ybWVyIENvbG9uaWFsIEZsZWV0IFJlc2VydmUgb2ZmaWNlci4="
+          }
+        };
+        saved_doc = db.save(doc);
+      end
+    
+      it 'should be executed on a document with attachment'
+        db.open("123")._attachments.should.include "friend.txt"
+        db.open("123")._attachments["friend.txt"].stub.should.be_true
+      end
+
+      describe 'after delete'
+        before_each
+          delete_response = db.deleteDocAttachment({_id : "123", _rev : saved_doc.rev}, "friend.txt");
+        end
+        
+        it 'should send a successful request'
+          db.last_req.status.should.eql 200
+        end
+
+        it 'should leave the document untouched'
+          db.open("123").Callsign.should.eql "Starbuck"
+        end
+
+        it 'should result in a deleted document'
+          db.open("123").should.not.include "_attachments"
+        end
+
+        it 'should record the revision in the deleted document'
+          var responseText = db.request("GET", "/spec_db/123?rev=" + delete_response.rev).responseText;
+          var deleted_doc = JSON.parse(responseText);
+          deleted_doc._rev.should.eql delete_response.rev
+          deleted_doc._id.should.eql delete_response.id
+        end
+
+        it 'should return ok true, the ID and the revision of the deleted document'
+          delete_response.ok.should.be_true
+          delete_response.id.should.eql "123"
+          delete_response.should.have_property 'rev'
+        end
       end
     end
   end
