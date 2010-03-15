@@ -1,4 +1,4 @@
-// Specs for couch.js lines 326-483
+// Specs for couch.js lines 132-278
 
 describe 'CouchDB instance'
   before_each
@@ -8,6 +8,28 @@ describe 'CouchDB instance'
   
   after_each 
     db.deleteDb();
+  end
+  
+  describe '.ensureFullCommit'
+    before_each
+      response = db.ensureFullCommit();
+    end
+    
+    it 'should return ok true'
+      response.ok.should.be_true
+    end
+    
+    it 'should return the instance start time'
+      response.instance_start_time.should.have_length 16
+    end
+  end
+  
+  describe '.query'
+    
+  end
+  
+  describe '.view'
+    
   end
   
   describe '.info'
