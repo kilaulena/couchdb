@@ -84,25 +84,25 @@ describe 'CouchDB instance'
         db.last_req.status.should.eql 201
       end
     
+      it 'should return ok true'
+        db.save(doc).ok.should.be_true
+      end
+      
+      it 'should return ID and revision of the document'
+        var response = db.save(doc);
+        response.id.should.be_a String
+        response.id.should.have_length 32
+        response.rev.should.be_a String
+        response.rev.should.have_length 34
+      end
+      
       it 'should result in a saved document'
         var response  = db.save(doc);
         var saved_doc = db.open(response.id);
         saved_doc.Name.should.eql "Kara Thrace"
         saved_doc.Callsign.should.eql "Starbuck"
       end
-    
-      it 'should return ok true'
-        db.save(doc).ok.should.be_true
-      end
-    
-      it 'should return ID and revision of the document'
-        var response = db.save(doc);
-        response.id.should.be_a String
-        response.id.length.should.be_greater_than 10
-        response.rev.should.be_a String
-        response.rev.length.should.be_greater_than 10
-      end
-    
+
       it 'should save the document with the specified ID'
         doc._id = "123";
         var response = db.save(doc);
@@ -173,7 +173,7 @@ describe 'CouchDB instance'
         delete_response.should.have_property 'rev'
       end
     end
-  
+      
     describe '.deleteDocAttachment'
       before_each
         doc._id = "123";
@@ -185,12 +185,12 @@ describe 'CouchDB instance'
         };
         saved_doc = db.save(doc);
       end
-    
+     
       it 'should be executed on a document with attachment'
         db.open("123")._attachments.should.include "friend.txt"
         db.open("123")._attachments["friend.txt"].stub.should.be_true
       end
-
+     
       describe 'after delete'
         before_each
           delete_response = db.deleteDocAttachment({_id : "123", _rev : saved_doc.rev}, "friend.txt");
@@ -199,27 +199,78 @@ describe 'CouchDB instance'
         it 'should send a successful request'
           db.last_req.status.should.eql 200
         end
-
+     
         it 'should leave the document untouched'
           db.open("123").Callsign.should.eql "Starbuck"
         end
-
+     
         it 'should result in a deleted document'
           db.open("123").should.not.include "_attachments"
         end
-
+     
         it 'should record the revision in the deleted document'
           var responseText = db.request("GET", "/spec_db/123?rev=" + delete_response.rev).responseText;
           var deleted_doc = JSON.parse(responseText);
           deleted_doc._rev.should.eql delete_response.rev
           deleted_doc._id.should.eql delete_response.id
         end
-
+     
         it 'should return ok true, the ID and the revision of the deleted document'
           delete_response.ok.should.be_true
           delete_response.id.should.eql "123"
           delete_response.should.have_property 'rev'
         end
+      end
+    end
+          
+    describe '.bulkSave'
+      before_each
+        doc  = {"Name" : "Kara Thrace", "Callsign" : "Starbuck"};
+        doc2 = {"Name" : "Karl C. Agathon", "Callsign" : "Helo"};
+        doc3 = {"Name" : "Sharon Valerii", "Callsign" : "Boomer"};
+        docs = [doc, doc2, doc3];
+      end
+      
+      it 'should save the documents'
+        db.bulkSave(docs);
+        db.last_req.status.should.eql 201
+      end
+      
+      it 'should return ID and revision of the documents'
+        var response = db.bulkSave(docs);
+        response[0].id.should.be_a String
+        response[0].id.should.have_length 32
+        response[0].rev.should.be_a String
+        response[0].rev.should.have_length 34
+        response[1].id.should.be_a String
+        response[1].id.should.have_length 32
+        response[1].rev.should.be_a String
+        response[1].rev.should.have_length 34
+        response[2].id.should.be_a String
+        response[2].id.should.have_length 32
+        response[2].rev.should.be_a String
+        response[2].rev.should.have_length 34
+      end
+      
+      it 'should result in saved documents'
+        var response  = db.bulkSave(docs);
+        db.open(response[0].id).Name.should.eql "Kara Thrace"
+        db.open(response[1].id).Name.should.eql "Karl C. Agathon"
+        db.open(response[2].id).Name.should.eql "Sharon Valerii"
+      end
+    
+      it 'should save the document with specified IDs'
+        doc._id  = "123";
+        doc2._id = "456";
+        docs = [doc, doc2, doc3];
+        var response = db.bulkSave(docs);
+        response[0].id.should.eql "123"
+        response[1].id.should.eql "456"
+        response[2].id.should.have_length 32
+      end
+      
+      it 'should do something with the options'
+      
       end
     end
   end
