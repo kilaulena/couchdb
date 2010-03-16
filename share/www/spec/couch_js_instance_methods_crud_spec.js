@@ -109,13 +109,6 @@ describe 'CouchDB instance'
         response.id.should.eql "123"
       end
     
-      // this isn't implemented, I think it would be nice to have?
-      it 'should save the document with a number as ID'
-        doc._id = 123;
-        var response = db.save(doc);
-        response.id.should.eql 123
-      end
-    
       it 'should do something with the options'
       
       end
