@@ -11,16 +11,17 @@ describe 'CouchDB instance'
   end
   
   describe '.ensureFullCommit'
-    before_each
-      response = db.ensureFullCommit();
-    end
-    
     it 'should return ok true'
-      response.ok.should.be_true
+      db.ensureFullCommit().ok.should.be_true
     end
     
     it 'should return the instance start time'
-      response.instance_start_time.should.have_length 16
+      db.ensureFullCommit().instance_start_time.should.have_length 16
+    end
+    
+    it 'should post _ensure_full_commit to the db'
+      db.should.receive('request', 'once').with_args("POST", "/spec_db/_ensure_full_commit")
+      db.ensureFullCommit();
     end
   end
   
@@ -71,13 +72,94 @@ describe 'CouchDB instance'
     it 'should return a views language'
       result.view_index.language.should.eql "javascript"
     end  
-
+  
     it 'should return a views update sequence'
       result.view_index.update_seq.should.eql 0
     end  
-
+  
     it 'should return a views signature'
       result.view_index.signature.should.have_length 32
     end  
+  end
+  
+
+  describe '.allDocs'
+    
+  end
+  
+  describe '.designDocs'
+    
+  end
+  
+  describe '.changes'
+    
+  end
+  
+  describe '.compact'
+    it 'should return ok true'
+      db.compact().ok.should.be_true
+    end
+    
+    it 'should post _compact to the db'
+      db.should.receive('request', 'once').with_args("POST", "/spec_db/_compact")
+      db.compact();
+    end
+  end
+  
+  describe '.viewCleanup'
+    it 'should return ok true'
+      db.viewCleanup().ok.should.be_true
+    end
+    
+    it 'should post _view_cleanup to the db'
+      db.should.receive('request', 'once').with_args("POST", "/spec_db/_view_cleanup")
+      db.viewCleanup();
+    end
+  end
+  
+  describe '.setDbProperty'
+    it 'should return ok true'
+      db.setDbProperty('_revs_limit', 1500).ok.should.be_true
+    end
+    
+    it 'should set a db property'
+      db.setDbProperty('_revs_limit', 1500);
+      db.getDbProperty('_revs_limit').should.eql 1500
+      db.setDbProperty('_revs_limit', 1200);
+      db.getDbProperty('_revs_limit').should.eql 1200
+    end
+  end
+  
+  describe '.getDbProperty'
+    it 'should get a db property'
+      db.setDbProperty('_revs_limit', 1200); 
+      db.getDbProperty('_revs_limit').should.eql 1200
+    end
+   
+    it 'should throw an error when the property doesnt exist'
+      -{ db.getDbProperty('_doesnt_exist')}.should.throw_error
+    end
+  end 
+  
+  describe '.setSecObj'
+    // it 'should return ok true'
+    //   db.setSecObj({'readers':['bill']}).ok.should.be_true
+    // end
+    //   
+    // it 'should save the given object into the _security object '
+    //   db.should.receive('request', 'once').with_args("PUT", "/spec_db/_security", {body: '{"admins":["bill"]}'})
+    //   db.setSecObj({'admins':['bill']})
+    // end
+  end
+  
+  describe '.getSecObj'
+    it 'should get the security object'
+      db.setSecObj({'reader':['bill']})
+      db.getSecObj().should.eql {'reader':['bill']}
+    end
+    
+    it 'should return an empty object when there is no security object'
+      db.getSecObj().should.eql {}
+    end
   end
 end
