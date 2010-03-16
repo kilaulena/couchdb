@@ -93,7 +93,7 @@ describe 'CouchDB instance'
         response.id.should.be_a String
         response.id.should.have_length 32
         response.rev.should.be_a String
-        response.rev.should.have_length 34
+        response.rev.length.should.be_at_least 30
       end
       
       it 'should result in a saved document'
@@ -234,15 +234,15 @@ describe 'CouchDB instance'
         response[0].id.should.be_a String
         response[0].id.should.have_length 32
         response[0].rev.should.be_a String
-        response[0].rev.should.have_length 34
+        response[0].rev.length.should.be_at_least 30
         response[1].id.should.be_a String
         response[1].id.should.have_length 32
         response[1].rev.should.be_a String
-        response[1].rev.should.have_length 34
+        response[1].rev.length.should.be_at_least 30
         response[2].id.should.be_a String
         response[2].id.should.have_length 32
         response[2].rev.should.be_a String
-        response[2].rev.should.have_length 34
+        response[2].rev.length.should.be_at_least 30
       end
       
       it 'should result in saved documents'
