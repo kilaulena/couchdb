@@ -198,12 +198,6 @@ function CouchDB(name, httpHeaders) {
     return JSON.parse(this.last_req.responseText);
   }
 
-  this.viewCleanup = function() {
-    this.last_req = this.request("POST", this.uri + "_view_cleanup");
-    CouchDB.maybeThrowError(this.last_req);
-    return JSON.parse(this.last_req.responseText);
-  }
-
   this.allDocs = function(options,keys) {
     if(!keys) {
       this.last_req = this.request("GET", this.uri + "_all_docs"
