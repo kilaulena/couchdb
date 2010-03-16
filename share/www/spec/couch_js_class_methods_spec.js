@@ -1,4 +1,4 @@
-// Specs for couch.js lines 326-483
+// Specs for couch.js lines 320-477
 
 describe 'CouchDB class'
   before_each

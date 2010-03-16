@@ -1,4 +1,4 @@
-// Specs for couch.js lines 132-278
+// Specs for couch.js lines 132-272
 
 describe 'CouchDB instance'
   before_each
@@ -82,7 +82,7 @@ describe 'CouchDB instance'
     end  
   end
   
-
+  
   describe '.allDocs'
     
   end
@@ -92,7 +92,48 @@ describe 'CouchDB instance'
   end
   
   describe '.changes'
+    it 'should return no changes when there arent any'
+      db.changes().last_seq.should.eql 0
+      db.changes().results.should.eql []
+    end
     
+    describe 'with changes'
+      before_each
+        db.save({"Name" : "Felix Gaeta", "_id" : "123"});
+        db.save({"Name" : "Samuel T. Anders", "_id" : "456"});
+      end
+    
+      it 'should return changes'
+        var result = db.changes();
+
+        result.last_seq.should.eql 2
+        result.results[0].id.should.eql "123"
+        result.results[0].seq.should.eql 1
+        result.results[0].changes[0].rev.length.should.be_at_least 30
+        result.results[1].id.should.eql "456"
+        result.results[1].seq.should.eql 2
+        result.results[1].changes[0].rev.length.should.be_at_least 30
+      end
+    
+      it 'should pass through the options'
+        var result = db.changes({"since":"1"});
+      
+        result.last_seq.should.eql 2
+        result.results[0].id.should.eql "456"
+        result.results[0].seq.should.eql 2
+        result.results[0].changes[0].rev.length.should.be_at_least 30
+      end
+      
+      it 'should pass through the keys'
+        // var result = db.changes({}, );
+        
+      end
+      
+      it 'should pass through the options and the keys'
+        // var result = db.changes({"since":"1"}, );
+        
+      end
+    end
   end
   
   describe '.compact'
