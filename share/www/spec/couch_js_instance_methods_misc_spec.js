@@ -1,4 +1,4 @@
-// Specs for couch.js lines 132-272
+// Specs for couch.js lines 132-265
 
 describe 'CouchDB instance'
   before_each
@@ -172,19 +172,6 @@ describe 'CouchDB instance'
        
          result.last_seq.should.eql 2
          result.results[0].id.should.eql "456"
-       end
-       
-       it 'should pass through the keys'
-         var result = db.changes({}, "456");
-         
-         result.results.should.have_length 1
-         result.results[0].id.should.eql "456"
-       end
-       
-       it 'should pass through the options and the keys'
-         var result = db.changes({"since":"1"}, ["123"]);
-         
-         result.results.should.have_length 0
        end
      end
    end

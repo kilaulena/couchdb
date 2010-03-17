@@ -217,18 +217,11 @@ function CouchDB(name, httpHeaders) {
     return this.allDocs({startkey:"_design", endkey:"_design0"});
   };
 
-  this.changes = function(options,keys) {
-    var req = null;
-    if(!keys) {
-      req = this.request("GET", this.uri + "_changes" + encodeOptions(options));
-    } else {
-      req = this.request("POST", this.uri + "_changes" + encodeOptions(options), {
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({keys:keys})
-      });
-    }
-    CouchDB.maybeThrowError(req);
-    return JSON.parse(req.responseText);
+  this.changes = function(options) {
+    this.last_req = this.request("GET", this.uri + "_changes" 
+      + encodeOptions(options));
+    CouchDB.maybeThrowError(this.last_req);
+    return JSON.parse(this.last_req.responseText);
   }
 
   this.compact = function() {
