@@ -99,13 +99,13 @@ describe 'CouchDB instance'
     
     describe 'with changes'
       before_each
-        db.save({"Name" : "Felix Gaeta", "_id" : "123"});
+        db.save({"Name" : "Felix Gaeta",      "_id" : "123"});
         db.save({"Name" : "Samuel T. Anders", "_id" : "456"});
       end
     
       it 'should return changes'
         var result = db.changes();
-
+  
         result.last_seq.should.eql 2
         result.results[0].id.should.eql "123"
         result.results[0].seq.should.eql 1
@@ -183,20 +183,29 @@ describe 'CouchDB instance'
   end 
   
   describe '.setSecObj'
-    // it 'should return ok true'
-    //   db.setSecObj({'readers':['bill']}).ok.should.be_true
-    // end
-    //   
-    // it 'should save the given object into the _security object '
-    //   db.should.receive('request', 'once').with_args("PUT", "/spec_db/_security", {body: '{"admins":["bill"]}'})
-    //   db.setSecObj({'admins':['bill']})
-    // end
+    it 'should return ok true'
+      db.setSecObj({"readers":{"names":["laura"],"roles":["president"]}}).ok.should.be_true
+    end
+      
+    it 'should save a well formed object into the _security object '
+      db.should.receive('request', 'once').with_args("PUT", "/spec_db/_security", {body: '{"readers":{"names":["laura"],"roles":["president"]}}'})
+      db.setSecObj({"readers": {"names" : ["laura"], "roles" : ["president"]}})
+    end
+    
+    it 'should throw an error when the readers or admins object is malformed'
+      -{ db.setSecObj({'admins':['cylon']}) }.should.throw_error
+    end
+    
+    it 'should save any other object into the _security object'
+      db.setSecObj({"something" : "anything"})
+      db.getSecObj().should.eql {"something" : "anything"}
+    end
   end
   
   describe '.getSecObj'
     it 'should get the security object'
-      db.setSecObj({'reader':['bill']})
-      db.getSecObj().should.eql {'reader':['bill']}
+      db.setSecObj({"admins" : {"names" : ["bill"], "roles" : ["admiral"]}})
+      db.getSecObj().should.eql {"admins" : {"names": ["bill"], "roles": ["admiral"]}}
     end
     
     it 'should return an empty object when there is no security object'
