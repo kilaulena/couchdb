@@ -6,8 +6,15 @@ describe 'CouchDB instance'
   end
   
   describe '.request'
-    it 'should return a XMLHttpRequest'
+    before_each
       db.createDb();
+    end
+
+    after_each
+      db.deleteDb();
+    end
+
+    it 'should return a XMLHttpRequest'
       var req = db.request("GET", "/spec_db");
       req.should.include 'readyState'
       req.should.include 'responseText'
@@ -15,11 +22,11 @@ describe 'CouchDB instance'
       // in Safari a XMLHttpRequest is actually a XMLHttpRequestConstructor, 
       // otherwise we could just do:
       // req.should.be_a XMLHttpRequest
-      db.deleteDb();
     end
     
-    it 'should do something with the options'
-      
+    it 'should pass through the options'
+      CouchDB.should.receive('request', 'once').with_args("GET", "/spec_db", {"X-Couch-Full-Commit":"true"})
+      db.request("GET", "/spec_db", {"X-Couch-Full-Commit":"true"});
     end
   end
   
@@ -27,7 +34,7 @@ describe 'CouchDB instance'
     after_each
       db.deleteDb();
     end
-    
+     
     it 'should create the db'
       db.createDb();
       db.last_req.status.should.eql 201
@@ -46,7 +53,7 @@ describe 'CouchDB instance'
       }
     end
   end
-  
+   
   describe '.deleteDb'
     before_each
       db.createDb();
@@ -102,15 +109,17 @@ describe 'CouchDB instance'
         saved_doc.Name.should.eql "Kara Thrace"
         saved_doc.Callsign.should.eql "Starbuck"
       end
-
+  
       it 'should save the document with the specified ID'
         doc._id = "123";
         var response = db.save(doc);
         response.id.should.eql "123"
       end
     
-      it 'should do something with the options'
-      
+      it 'should pass through the options'
+        doc._id = "123";
+        CouchDB.should.receive('request', 'once').with_args("PUT", '/spec_db/123?batch=ok')
+        db.save(doc, {"batch" : "ok"});
       end
     end
       
@@ -128,8 +137,9 @@ describe 'CouchDB instance'
         db.open("non_existing").should.be_null
       end
     
-      it 'should do something with the options'
-      
+      it 'should pass through the options'
+        CouchDB.should.receive('request', 'once').with_args("GET", '/spec_db/123?revs=true')
+        db.open("123", {"revs" : "true"});
       end
     end
       
@@ -262,8 +272,11 @@ describe 'CouchDB instance'
         response[2].id.should.have_length 32
       end
       
-      it 'should do something with the options'
-      
+      it 'should pass through the options'
+        doc._id  = "123";
+        docs = [doc];
+        CouchDB.should.receive('request', 'once').with_args("POST", '/spec_db/_bulk_docs', {body: '{"docs":[{"Name":"Kara Thrace","Callsign":"Starbuck","_id":"123"}],"batch":"ok"}'})
+        db.bulkSave(docs, {"batch" : "ok"});
       end
     end
   end
