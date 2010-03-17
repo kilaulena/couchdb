@@ -20,7 +20,7 @@ describe 'CouchDB instance'
     end
     
     it 'should post _ensure_full_commit to the db'
-      db.should.receive('request', 'once').with_args("POST", "/spec_db/_ensure_full_commit")
+      db.should.receive("request", "once").with_args("POST", "/spec_db/_ensure_full_commit")
       db.ensureFullCommit();
     end
   end
@@ -142,7 +142,7 @@ describe 'CouchDB instance'
     end
     
     it 'should post _compact to the db'
-      db.should.receive('request', 'once').with_args("POST", "/spec_db/_compact")
+      db.should.receive("request", "once").with_args("POST", "/spec_db/_compact")
       db.compact();
     end
   end
@@ -153,32 +153,32 @@ describe 'CouchDB instance'
     end
     
     it 'should post _view_cleanup to the db'
-      db.should.receive('request', 'once').with_args("POST", "/spec_db/_view_cleanup")
+      db.should.receive("request", "once").with_args("POST", "/spec_db/_view_cleanup")
       db.viewCleanup();
     end
   end
   
   describe '.setDbProperty'
     it 'should return ok true'
-      db.setDbProperty('_revs_limit', 1500).ok.should.be_true
+      db.setDbProperty("_revs_limit", 1500).ok.should.be_true
     end
     
     it 'should set a db property'
-      db.setDbProperty('_revs_limit', 1500);
-      db.getDbProperty('_revs_limit').should.eql 1500
-      db.setDbProperty('_revs_limit', 1200);
-      db.getDbProperty('_revs_limit').should.eql 1200
+      db.setDbProperty("_revs_limit", 1500);
+      db.getDbProperty("_revs_limit").should.eql 1500
+      db.setDbProperty("_revs_limit", 1200);
+      db.getDbProperty("_revs_limit").should.eql 1200
     end
   end
   
   describe '.getDbProperty'
     it 'should get a db property'
-      db.setDbProperty('_revs_limit', 1200); 
-      db.getDbProperty('_revs_limit').should.eql 1200
+      db.setDbProperty("_revs_limit", 1200); 
+      db.getDbProperty("_revs_limit").should.eql 1200
     end
    
     it 'should throw an error when the property doesnt exist'
-      -{ db.getDbProperty('_doesnt_exist')}.should.throw_error
+      -{ db.getDbProperty("_doesnt_exist")}.should.throw_error
     end
   end 
   
@@ -188,12 +188,12 @@ describe 'CouchDB instance'
     end
       
     it 'should save a well formed object into the _security object '
-      db.should.receive('request', 'once').with_args("PUT", "/spec_db/_security", {body: '{"readers":{"names":["laura"],"roles":["president"]}}'})
+      db.should.receive("request", "once").with_args("PUT", "/spec_db/_security", {body: '{"readers":{"names":["laura"],"roles":["president"]}}'})
       db.setSecObj({"readers": {"names" : ["laura"], "roles" : ["president"]}})
     end
     
     it 'should throw an error when the readers or admins object is malformed'
-      -{ db.setSecObj({'admins':['cylon']}) }.should.throw_error
+      -{ db.setSecObj({"admins":["cylon"]}) }.should.throw_error
     end
     
     it 'should save any other object into the _security object'

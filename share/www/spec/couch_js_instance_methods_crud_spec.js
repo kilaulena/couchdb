@@ -16,16 +16,16 @@ describe 'CouchDB instance'
 
     it 'should return a XMLHttpRequest'
       var req = db.request("GET", "/spec_db");
-      req.should.include 'readyState'
-      req.should.include 'responseText'
-      req.should.include 'statusText'
+      req.should.include "readyState"
+      req.should.include "responseText"
+      req.should.include "statusText"
       // in Safari a XMLHttpRequest is actually a XMLHttpRequestConstructor, 
       // otherwise we could just do:
       // req.should.be_a XMLHttpRequest
     end
     
     it 'should pass through the options'
-      CouchDB.should.receive('request', 'once').with_args("GET", "/spec_db", {"X-Couch-Full-Commit":"true"})
+      CouchDB.should.receive("request", "once").with_args("GET", "/spec_db", {"X-Couch-Full-Commit":"true"})
       db.request("GET", "/spec_db", {"X-Couch-Full-Commit":"true"});
     end
   end
@@ -118,7 +118,7 @@ describe 'CouchDB instance'
     
       it 'should pass through the options'
         doc._id = "123";
-        CouchDB.should.receive('request', 'once').with_args("PUT", '/spec_db/123?batch=ok')
+        CouchDB.should.receive("request", "once").with_args("PUT", "/spec_db/123?batch=ok")
         db.save(doc, {"batch" : "ok"});
       end
     end
@@ -138,7 +138,7 @@ describe 'CouchDB instance'
       end
     
       it 'should pass through the options'
-        CouchDB.should.receive('request', 'once').with_args("GET", '/spec_db/123?revs=true')
+        CouchDB.should.receive("request", "once").with_args("GET", "/spec_db/123?revs=true")
         db.open("123", {"revs" : "true"});
       end
     end
@@ -173,7 +173,7 @@ describe 'CouchDB instance'
       it 'should return ok true, the ID and the revision of the deleted document'
         delete_response.ok.should.be_true
         delete_response.id.should.eql "123"
-        delete_response.should.have_property 'rev'
+        delete_response.should.have_property "rev"
       end
     end
       
@@ -275,7 +275,7 @@ describe 'CouchDB instance'
       it 'should pass through the options'
         doc._id  = "123";
         docs = [doc];
-        CouchDB.should.receive('request', 'once').with_args("POST", '/spec_db/_bulk_docs', {body: '{"docs":[{"Name":"Kara Thrace","Callsign":"Starbuck","_id":"123"}],"batch":"ok"}'})
+        CouchDB.should.receive("request", "once").with_args("POST", "/spec_db/_bulk_docs", {body: '{"docs":[{"Name":"Kara Thrace","Callsign":"Starbuck","_id":"123"}],"batch":"ok"}'})
         db.bulkSave(docs, {"batch" : "ok"});
       end
     end
