@@ -10,22 +10,20 @@ describe 'CouchDB class'
     db.deleteDb();
   end
   
-  // describe '.login'
-  //   it 'should create a session'
-  //     var userDoc = CouchDB.prepareUserDoc({name: "gaius", roles: "president"}, "secretpass");
-  //     var result = db.save(userDoc);
-  //     console.log(result)
-  //     
-  //     // db.setSecObj({"admins":{"names":["gaius"],"roles":["president"]}})
-  //     // console.log(db.getSecObj());
-  //     
-  //     var saved_user = db.open(result.id);
-  //     console.log(saved_user)
-  //    
-  //     // console.log(CouchDB.login("org.couchdb.user:gaius", "secretpass"));
-  //     console.log(CouchDB.login("gaius", "secretpass"));
-  //   end
-  // end
+  describe '.login'
+    it 'should create a session'
+      var userDoc = CouchDB.prepareUserDoc({name: "gaius", roles: ["president"]}, "secretpass");
+      console.log(JSON.stringify(userDoc))
+      var result = db.save(userDoc);
+      console.log(result)
+      
+      var saved_user = db.open(result.id);
+      console.log(saved_user)
+     
+      // console.log(CouchDB.login("org.couchdb.user:gaius", "secretpass"));
+      console.log(CouchDB.login("gaius", "secretpass"));
+    end
+  end
 
   describe '.logout'
     
@@ -41,24 +39,24 @@ describe 'CouchDB class'
   //     console.log(CouchDB.login('apollo', 'secret'))
   //   end
   // end
-
-  describe '.allDbs'
-    it 'should get _all_dbs'
-      CouchDB.should.receive("request", "once").with_args("GET", "/_all_dbs");
-      CouchDB.allDbs();
-    end
-    
-    it 'should return an array that includes a created database'
-      temp_db = new CouchDB("temp_spec_db", {"X-Couch-Full-Commit":"false"});
-      temp_db.createDb();
-      CouchDB.allDbs().should.include("temp_spec_db");
-      temp_db.deleteDb();
-    end
-    
-    it 'should return an array that does not include a database that does not exist'
-      CouchDB.allDbs().should.not.include("not_existing_temp_spec_db");
-    end
-  end
+  //
+  // describe '.allDbs'
+  //   it 'should get _all_dbs'
+  //     CouchDB.should.receive("request", "once").with_args("GET", "/_all_dbs");
+  //     CouchDB.allDbs();
+  //   end
+  //   
+  //   it 'should return an array that includes a created database'
+  //     temp_db = new CouchDB("temp_spec_db", {"X-Couch-Full-Commit":"false"});
+  //     temp_db.createDb();
+  //     CouchDB.allDbs().should.include("temp_spec_db");
+  //     temp_db.deleteDb();
+  //   end
+  //   
+  //   it 'should return an array that does not include a database that does not exist'
+  //     CouchDB.allDbs().should.not.include("not_existing_temp_spec_db");
+  //   end
+  // end
   
   describe '.allDesignDocs'
     
