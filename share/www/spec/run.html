@@ -2,6 +2,7 @@
   <head>
     <link type="text/css" rel="stylesheet" href="../script/jspec/jspec.css" />
     <script src="../script/jquery.js"></script>
+    <script src="../script/sha1.js"></script>
     <script src="../script/jspec/jspec.js"></script>
     <script src="../script/jspec/jspec.jquery.js"></script>
     <script src="../script/jspec/jspec.timers.js"></script>
@@ -11,8 +12,9 @@
     <script>
       function runSuites() {
         JSpec
-        .exec('couch_js_instance_methods_crud_spec.js')
-        .exec('couch_js_instance_methods_misc_spec.js')
+        .exec('couch_js_instance_methods_1_spec.js')
+        .exec('couch_js_instance_methods_2_spec.js')
+        .exec('couch_js_instance_methods_3_spec.js')
         .exec('couch_js_class_methods_spec.js')
         // .exec('jquery_couch_js_spec.js')
         .run({failuresOnly: true})
