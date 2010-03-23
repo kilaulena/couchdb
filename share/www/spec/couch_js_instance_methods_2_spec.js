@@ -93,7 +93,7 @@ describe 'CouchDB instance'
     end
   
     it 'should apply a view in erlang also'
-      //this should really really work!
+      // when this test fails, read this: http://wiki.apache.org/couchdb/EnableErlangViews
       var erlang_map = 'fun({Doc}) -> ' +
                        'ID = proplists:get_value(<<"_id">>, Doc, null), ' +
                        'Emit(ID, 1) ' +
