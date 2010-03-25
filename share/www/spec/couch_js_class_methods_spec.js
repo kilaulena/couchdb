@@ -244,11 +244,60 @@ describe 'CouchDB class'
     end
     
     describe '.request'
-    // console.log(CouchDB.urlPrefix)
+      it 'should return a XMLHttpRequest'
+        var req = CouchDB.request("GET", '/');
+        req.should.include "readyState"
+        req.should.include "responseText"
+        req.should.include "statusText"
+      end
+      
+      it 'should pass through the options headers'
+        var xhr = CouchDB.newXhr();
+        stub(CouchDB, 'newXhr').and_return(xhr);
+        
+        xhr.should.receive("setRequestHeader", "once").with_args("X-Couch-Full-Commit", "true")
+        CouchDB.request("GET", "/", {'headers': {"X-Couch-Full-Commit":"true"}});
+      end
+      
+      it 'should pass through the options body'
+        var xhr = CouchDB.newXhr();
+        stub(CouchDB, 'newXhr').and_return(xhr);
+       
+        xhr.should.receive("send", "once").with_args({"body_key":"body_value"})
+        CouchDB.request("GET", "/", {'body': {"body_key":"body_value"}});
+      end
+      
+      it 'should prepend the urlPrefix to the uri'
+        var oldPrefix = CouchDB.urlPrefix;
+        CouchDB.urlPrefix = "/_utils";
+       
+        var xhr = CouchDB.newXhr();
+        stub(CouchDB, 'newXhr').and_return(xhr);
+        
+        xhr.should.receive("open", "once").with_args("GET", "/_utils/", false)
+        CouchDB.request("GET", "/", {'headers': {"X-Couch-Full-Commit":"true"}});
+        
+        CouchDB.urlPrefix = oldPrefix;
+      end
     end
   
     describe '.requestStats'
-    
+      it 'should get the stats for specified module and key'
+        var stats = CouchDB.requestStats('couchdb', 'open_databases', null);
+        stats.description.should.eql 'number of open databases'
+        stats.current.should.be_a Number
+      end
+      
+      it 'should add flush true to the request when there is a test argument'
+        CouchDB.should.receive("request", "once").with_args("GET", "/_stats/httpd/requests?flush=true")
+        CouchDB.requestStats('httpd', 'requests', 'test');
+      end
+      
+      it 'should still work when there is a test argument'
+        var stats = CouchDB.requestStats('httpd_status_codes', '200', 'test');
+        stats.description.should.eql 'number of HTTP 200 OK responses'
+        stats.sum.should.be_a Number
+      end
     end
     
     describe '.newUuids'
