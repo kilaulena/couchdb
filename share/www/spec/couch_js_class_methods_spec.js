@@ -2,26 +2,42 @@
 
 describe 'CouchDB class'
   describe 'session stuff'
+    before
+      users_db = new CouchDB("spec_users_db", {"X-Couch-Full-Commit":"false"});
+      if (users_db.info().db_name != "spec_users_db") {
+        users_db.createDb();
+      };
+      var xhr = CouchDB.request("PUT", "/_config/couch_httpd_auth/authentication_db", {
+        body: JSON.stringify("spec_users_db"),
+        headers: {"X-Couch-Persist": "false"}
+      });
+      old_value = xhr.responseText.replace(/\n/,'').replace(/"/g,'');
+    end
+    
+    after
+      CouchDB.request("PUT", "/_config/couch_httpd_auth/authentication_db", {
+        body: JSON.stringify(old_value),
+        headers: {"X-Couch-Persist": "false"}
+      });
+    end
+    
     before_each
-      users_db = new CouchDB("_users", {"X-Couch-Full-Commit":"false"});
-      users_db.createDb();
       userDoc = users_db.save(CouchDB.prepareUserDoc({name: "Gaius Baltar", roles: ["president"]}, "secretpass"));
     end
   
     after_each
       users_db.deleteDoc({_id : userDoc.id, _rev : userDoc.rev})
-      users_db.deleteDb();
     end
     
     describe '.login'
       it 'should return ok true'
         CouchDB.login("Gaius Baltar", "secretpass").ok.should.be_true
       end
-    
+          
       it 'should return the name of the logged in user'
         CouchDB.login("Gaius Baltar", "secretpass").name.should.eql "Gaius Baltar"
       end
-    
+          
       it 'should post _session'
         CouchDB.should.receive("request", "once").with_args("POST", "/_session")
         CouchDB.login("Gaius Baltar", "secretpass");
@@ -52,12 +68,12 @@ describe 'CouchDB class'
         CouchDB.session().name.should.be_null
       end
     end
-  
+      
     describe '.session'
       before_each
         CouchDB.login("Gaius Baltar", "secretpass");
       end
-  
+      
       it 'should return ok true'
         CouchDB.session().ok.should.be_true
       end
@@ -71,7 +87,7 @@ describe 'CouchDB class'
       end
       
       it 'should return the name of the authentication db'
-        CouchDB.session().info.authentication_db.should.eql "_users"
+        CouchDB.session().info.authentication_db.should.eql "spec_users_db"
       end
       
       it 'should return the active authentication handler'
@@ -228,7 +244,7 @@ describe 'CouchDB class'
     end
     
     describe '.request'
-    
+    // console.log(CouchDB.urlPrefix)
     end
   
     describe '.requestStats'
