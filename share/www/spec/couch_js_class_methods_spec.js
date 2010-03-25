@@ -100,7 +100,6 @@ describe 'CouchDB class'
     before_each
       db = new CouchDB("spec_db", {"X-Couch-Full-Commit":"false"});
       db.createDb();
-      userDoc = CouchDB.prepareUserDoc({name: "Laura Roslin"}, "secretpass");
     end
   
     after_each
@@ -108,6 +107,10 @@ describe 'CouchDB class'
     end
   
     describe '.prepareUserDoc'
+      before_each
+        userDoc = CouchDB.prepareUserDoc({name: "Laura Roslin"}, "secretpass");
+      end
+      
       it 'should return the users name'
         userDoc.name.should.eql "Laura Roslin"
       end
@@ -280,7 +283,7 @@ describe 'CouchDB class'
         CouchDB.urlPrefix = oldPrefix;
       end
     end
-  
+    
     describe '.requestStats'
       it 'should get the stats for specified module and key'
         var stats = CouchDB.requestStats('couchdb', 'open_databases', null);
@@ -301,7 +304,42 @@ describe 'CouchDB class'
     end
     
     describe '.newUuids'
-    
+      after_each
+        CouchDB.uuids_cache = [];
+      end
+      
+      it 'should return the specified amount of uuids'
+        var uuids = CouchDB.newUuids(45);
+        uuids.should.have_length 45
+      end
+          
+      it 'should return an array with uuids'
+        var uuids = CouchDB.newUuids(1);
+        uuids[0].should.be_a String
+        uuids[0].should.have_length 32
+      end
+      
+      it 'should leave the uuids_cache with 100 uuids when theres no buffer size specified'
+        CouchDB.newUuids(23);
+        CouchDB.uuids_cache.should.have_length 100
+      end
+      
+      it 'should leave the uuids_cache with the specified buffer size'
+        CouchDB.newUuids(23, 150);
+        CouchDB.uuids_cache.should.have_length 150
+      end
+      
+      it 'should get the uuids from the uuids_cache when there are enough uuids in there'
+        CouchDB.newUuids(10);
+        CouchDB.newUuids(25);
+        CouchDB.uuids_cache.should.have_length 75
+      end
+      
+      it 'should create new uuids and add as many as specified to the uuids_cache when there are not enough uuids in the cache'
+        CouchDB.newUuids(10);
+        CouchDB.newUuids(125, 60);
+        CouchDB.uuids_cache.should.have_length 160
+      end
     end
     
     describe '.maybeThrowError'
