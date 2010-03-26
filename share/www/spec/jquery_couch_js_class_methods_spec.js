@@ -2,16 +2,27 @@
 
 describe 'jQuery couchdb'
   before
+    if(typeof(old_alert) == 'undefined'){
+      old_alert = alert;
+    }
     alert = function(msg){
       console.log('alert: ', msg)
     };
   end
   
+  after
+    alert = old_alert;
+  end
+  
   describe 'activeTasks'
-    it 'should description'
-      // console.log($.couch)
-      // console.log(this.urlPrefix)
-      // $.couch.session({'success': function(resp){console.log(resp)}})
+    it 'should return the active tasks'
+      $.couch.session({
+        success: function(resp){
+          resp.info.should.have_prop 'authentication_db'
+          resp.userCtx.should.include 'name'
+          resp.userCtx.roles.should.be_an Array
+        }
+      });
     end
   end
   
@@ -44,11 +55,11 @@ describe 'jQuery couchdb'
   end
   
   describe 'encodeDocId'
-    it 'should description'
-      // $.encodeDocId('123');
-    end
+    // it 'should description'
+    //   $.encodeDocId('123');
+    // end
   end
-
+  
   describe 'info'
     
   end
