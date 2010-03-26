@@ -40,7 +40,7 @@ describe 'CouchDB instance'
       db.last_req.status.should.eql 201
     end
     
-    it 'should return the responseText of the request'
+    it 'should return the ok true'
       db.createDb().should.eql {"ok" : true}
     end
     
