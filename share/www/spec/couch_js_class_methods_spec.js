@@ -11,7 +11,9 @@ describe 'CouchDB class'
         body: JSON.stringify("spec_users_db"),
         headers: {"X-Couch-Persist": "false"}
       });
-      old_value = xhr.responseText.replace(/\n/,'').replace(/"/g,'');
+      if(typeof(old_value) == 'undefined'){
+        old_value = xhr.responseText.replace(/\n/,'').replace(/"/g,'');
+      }
     end
     
     after
