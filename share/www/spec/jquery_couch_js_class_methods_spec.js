@@ -158,82 +158,64 @@ describe 'jQuery couchdb'
     end
   end
   
-  describe 'signup'
+  describe 'user_db stuff'
     before
-      users_db = new CouchDB("spec_users_db", {"X-Couch-Full-Commit":"false"});
-      var allDbs = CouchDB.allDbs();
-      var db_exists = false;
-      for (var i = 0; i < allDbs; i++) {
-        if (allDbs[i] == "spec_users_db") {
-          db_exists = true;
-        }
-      }
-      if (db_exists) {
-        users_db.createDb();
-      };
-      var xhr = CouchDB.request("PUT", "/_config/couch_httpd_auth/authentication_db", {
-        body: JSON.stringify("spec_users_db"),
-        headers: {"X-Couch-Persist": "false"}
-      });
-      if(typeof(old_value) == 'undefined'){
-        old_value = xhr.responseText.replace(/\n/,'').replace(/"/g,'');
-      }
+      useTestUserDb();
     end
-    
+
     after
-      CouchDB.request("PUT", "/_config/couch_httpd_auth/authentication_db", {
-        body: JSON.stringify(old_value),
-        headers: {"X-Couch-Persist": "false"}
-      });
+      useOldUserDb();
     end
     
-    it 'should return a saved user'
-      $.couch.signup(
-        {name: "Tom Zarek"}, "secretpass", {
-        success: function(resp){
-          resp.id.should.eql "org.couchdb.user:Tom Zarek"
-          resp.rev.length.should.be_at_least 30
-          resp.ok.should.be_true
-          users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
-        }
-      });
+    describe 'signup'
+      it 'should return a saved user'
+        $.couch.signup(
+          {name: "Tom Zarek"}, "secretpass", {
+          success: function(resp){
+            resp.id.should.eql "org.couchdb.user:Tom Zarek"
+            resp.rev.length.should.be_at_least 30
+            resp.ok.should.be_true
+            users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
+          }
+        });
+      end
+
+      it 'should create a userDoc in the user db'
+        $.couch.signup(
+          {name: "Tom Zarek"}, "secretpass", {
+          success: function(resp){
+            var user = users_db.open(resp.id);
+            user.name.should.eql "Tom Zarek"
+            user._id.should.eql "org.couchdb.user:Tom Zarek"
+            user.roles.should.eql []
+            user.password_sha.length.should.be_at_least 30
+            user.password_sha.should.be_a String
+            users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
+          }
+        });
+      end
+
+      it 'should create a userDoc with roles when specified'
+        $.couch.signup(
+          {name: "Tom Zarek", roles: ["vice_president", "activist"]}, "secretpass", {
+          success: function(resp){
+            var user = users_db.open(resp.id);
+            user.roles.should.eql ["vice_president", "activist"]
+            users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
+          }
+        });
+      end
     end
-    
-    it 'should create a userDoc in the user db'
-      $.couch.signup(
-        {name: "Tom Zarek"}, "secretpass", {
-        success: function(resp){
-          var user = users_db.open(resp.id);
-          user.name.should.eql "Tom Zarek"
-          user._id.should.eql "org.couchdb.user:Tom Zarek"
-          user.roles.should.eql []
-          user.password_sha.length.should.be_at_least 30
-          user.password_sha.should.be_a String
-          users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
-        }
-      });
+
+    describe 'login'
+
     end
-    
-    it 'should create a userDoc with roles when specified'
-      $.couch.signup(
-        {name: "Tom Zarek", roles: ["vice_president", "activist"]}, "secretpass", {
-        success: function(resp){
-          var user = users_db.open(resp.id);
-          user.roles.should.eql ["vice_president", "activist"]
-          users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
-        }
-      });
+
+    describe 'logout'
+
     end
   end
-  
-  describe 'login'
-    
-  end
-  
-  describe 'logout'
-    
-  end
-  
+
   describe 'encodeDocId'
     it 'should return the encoded docID when it is not a design document'
       $.couch.encodeDocId("viper").should.eql(encodeURIComponent("viper"))
