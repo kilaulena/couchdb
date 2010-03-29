@@ -137,11 +137,93 @@ describe 'jQuery couchdb'
   end
   
   describe 'userDb'
+    it 'should return the userDb'
+      var authentication_db;
+      $.couch.session({
+        success: function(resp){
+          authentication_db = resp.info.authentication_db;
+        }
+      });
+      
+      $.couch.userDb(function(resp){
+        resp.name.should.eql authentication_db
+      });
+    end
     
+    it 'should return a db instance'
+      $.couch.userDb(function(resp){
+        resp.should.respond_to 'allDocs'
+        resp.should.respond_to 'bulkSave'
+      });
+    end
   end
   
   describe 'signup'
+    before
+      users_db = new CouchDB("spec_users_db", {"X-Couch-Full-Commit":"false"});
+      var allDbs = CouchDB.allDbs();
+      var db_exists = false;
+      for (var i = 0; i < allDbs; i++) {
+        if (allDbs[i] == "spec_users_db") {
+          db_exists = true;
+        }
+      }
+      if (db_exists) {
+        users_db.createDb();
+      };
+      var xhr = CouchDB.request("PUT", "/_config/couch_httpd_auth/authentication_db", {
+        body: JSON.stringify("spec_users_db"),
+        headers: {"X-Couch-Persist": "false"}
+      });
+      if(typeof(old_value) == 'undefined'){
+        old_value = xhr.responseText.replace(/\n/,'').replace(/"/g,'');
+      }
+    end
     
+    after
+      CouchDB.request("PUT", "/_config/couch_httpd_auth/authentication_db", {
+        body: JSON.stringify(old_value),
+        headers: {"X-Couch-Persist": "false"}
+      });
+    end
+    
+    it 'should return a saved user'
+      $.couch.signup(
+        {name: "Tom Zarek"}, "secretpass", {
+        success: function(resp){
+          resp.id.should.eql "org.couchdb.user:Tom Zarek"
+          resp.rev.length.should.be_at_least 30
+          resp.ok.should.be_true
+          users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
+        }
+      });
+    end
+    
+    it 'should create a userDoc in the user db'
+      $.couch.signup(
+        {name: "Tom Zarek"}, "secretpass", {
+        success: function(resp){
+          var user = users_db.open(resp.id);
+          user.name.should.eql "Tom Zarek"
+          user._id.should.eql "org.couchdb.user:Tom Zarek"
+          user.roles.should.eql []
+          user.password_sha.length.should.be_at_least 30
+          user.password_sha.should.be_a String
+          users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
+        }
+      });
+    end
+    
+    it 'should create a userDoc with roles when specified'
+      $.couch.signup(
+        {name: "Tom Zarek", roles: ["vice_president", "activist"]}, "secretpass", {
+        success: function(resp){
+          var user = users_db.open(resp.id);
+          user.roles.should.eql ["vice_president", "activist"]
+          users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
+        }
+      });
+    end
   end
   
   describe 'login'
@@ -269,6 +351,19 @@ describe 'jQuery couchdb'
   end
   
   describe 'newUUID'
+    it 'should return a new UUID'
+      var new_uuid = $.couch.newUUID(1);
+      new_uuid.should.be_a String
+      new_uuid.should.have_length 32
+    end
     
+    it 'should fill the uuidCache with the specified number minus 1'
+      // we can't reach the uuidCache from here, so we mock the next request 
+      // to test that the next uuid is not coming from the request, but from the cache.
+      $.couch.newUUID(2);
+      mock_request().and_return({'uuids':['a_sample_uuid']})
+      $.couch.newUUID(1).should.not.eql 'a_sample_uuid'
+      $.couch.newUUID(1).should.eql 'a_sample_uuid'
+    end
   end
 end
