@@ -179,7 +179,7 @@ describe 'jQuery couchdb'
           }
         });
       end
-
+    
       it 'should create a userDoc in the user db'
         $.couch.signup(
           {name: "Tom Zarek"}, "secretpass", {
@@ -194,7 +194,7 @@ describe 'jQuery couchdb'
           }
         });
       end
-
+    
       it 'should create a userDoc with roles when specified'
         $.couch.signup(
           {name: "Tom Zarek", roles: ["vice_president", "activist"]}, "secretpass", {
@@ -206,13 +206,106 @@ describe 'jQuery couchdb'
         });
       end
     end
-
+    
     describe 'login'
-
+      before_each
+        user = {};
+        $.couch.signup({name: "Tom Zarek", roles: ["vice_president", "activist"]}, "secretpass", {
+          success: function(resp){
+            user.id  = resp.id;
+            user.rev = resp.rev;
+          }
+        });
+      end
+      
+      after_each
+        users_db.deleteDoc({_id : user.id, _rev : user.rev})
+      end
+      
+      it 'should return the logged in user'
+        $.couch.login({
+          name: "Tom Zarek", 
+          password: "secretpass", 
+          success: function(resp){
+            resp.name.should.eql "Tom Zarek"
+            resp.ok.should.be_true
+            resp.roles.should.eql ["vice_president", "activist"]
+          }
+        });
+      end
+      
+      it 'should result in a session for the logged in user'
+        $.couch.login({
+          name: "Tom Zarek", 
+          password: "secretpass"
+        });
+        $.couch.session({
+          success: function(resp){
+            resp.info.authentication_db.should.eql "spec_users_db"
+            resp.userCtx.name.should.eql "Tom Zarek"
+            resp.userCtx.roles.should.eql ["vice_president", "activist"]
+          }
+        });
+      end
+      
+      it 'should return a 404 when password is wrong'
+        $.couch.login({
+          name: "Tom Zarek", 
+          password: "wrongpass", 
+          error: function(status, error, reason){
+            status.should.eql 401
+            error.should.eql "unauthorized"
+            reason.should.eql "Name or password is incorrect."
+          }
+        });
+      end
+      
+      it 'should return a 404 when the user doesnt exist in the users db'
+        $.couch.login({
+          name: "Number Three", 
+          password: "secretpass", 
+          error: function(status, error, reason){
+            status.should.eql 401
+            error.should.eql "unauthorized"
+            reason.should.eql "Name or password is incorrect."
+          }
+        });
+      end
     end
 
     describe 'logout'
-
+      before_each
+        user = {};
+        $.couch.signup({name: "Tom Zarek", roles: ["vice_president", "activist"]}, "secretpass", {
+          success: function(resp){
+            user.id  = resp.id;
+            user.rev = resp.rev;
+          }
+        });
+        $.couch.login({name: "Tom Zarek", password: "secretpass"});
+      end
+      
+      after_each
+        users_db.deleteDoc({_id : user.id, _rev : user.rev})
+      end
+      
+      it 'should return ok true'
+        $.couch.logout({
+          success: function(resp){
+            resp.ok.should.be_true
+          }
+        });
+      end
+      
+      it 'should result in an empty session'
+        $.couch.logout();
+        $.couch.session({
+          success: function(resp){
+            resp.userCtx.name.should.be_null
+            resp.userCtx.roles.should.not.include ["vice_president"]
+          }
+        });
+      end
     end
   end
 
