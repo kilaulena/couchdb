@@ -28,16 +28,54 @@ describe 'jQuery couchdb db'
     end
   end
   
-  describe 'compact'
+  describe 'triggering db functions'
+    before_each
+      db.create();
+    end
 
-  end
+    after_each
+      db.drop();
+    end
+    
+    describe 'compact'
+      it 'should return ok true'
+        db.compact({
+          success: function(resp) {
+            resp.ok.should.be_true
+          }
+        });
+      end
 
-  describe 'viewCleanup'
-    
-  end
-  
-  describe 'compactView'
-    
+      it 'should call _compact'
+        db.compact({
+          success: function(resp, obj) {
+            obj.url.should.eql "/spec_db/_compact"
+          }
+        });
+      end
+    end
+
+    describe 'viewCleanup'
+      it 'should return ok true'
+        db.viewCleanup({
+          success: function(resp) {
+            resp.ok.should.be_true
+          }
+        });
+      end
+
+      it 'should call _compact'
+        db.viewCleanup({
+          success: function(resp, obj) {
+            obj.url.should.eql "/spec_db/_view_cleanup"
+          }
+        });
+      end
+    end
+
+    describe 'compactView'
+
+    end
   end
   
   describe 'create'
