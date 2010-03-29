@@ -455,6 +455,9 @@
       type: "GET", dataType: "json",
       complete: function(req) {
         var resp = $.httpData(req, "json");
+        if (options.ajaxStart) {
+          options.ajaxStart(resp);
+        }
         if (req.status == options.successStatus) {
           if (options.success) options.success(resp);
         } else if (options.error) {
