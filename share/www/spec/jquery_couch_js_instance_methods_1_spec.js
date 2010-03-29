@@ -6,7 +6,7 @@ describe 'jQuery couchdb db'
       old_alert = alert;
     }
     alert = function(msg){
-      console.log('alert: ', msg)
+      // console.log('alert: ', msg)
     };
   end
   
@@ -44,7 +44,7 @@ describe 'jQuery couchdb db'
     after_each
       db.drop();
     end
-
+  
     it 'should return ok true'
       db.create({
         success: function(resp) {
@@ -66,6 +66,27 @@ describe 'jQuery couchdb db'
   end
   
   describe 'drop'
+    before_each
+      db.create();
+    end
     
+    it 'should return ok true'
+      db.drop({
+        success: function(resp) {
+          resp.ok.should.be_true
+        }
+      });
+    end
+    
+    it 'should result in a deleted db'
+      db.drop();
+      db.drop({
+        error: function(status, error, reason){
+          status.should.eql 404
+          error.should.eql "not_found"
+          reason.should.eql "missing"
+        }
+      });
+    end
   end
 end
