@@ -46,7 +46,7 @@ describe 'jQuery couchdb db'
         });
       end
 
-      it 'should call _compact'
+      it 'should trigger _compact'
         db.compact({
           success: function(resp, obj) {
             obj.url.should.eql "/spec_db/_compact"
@@ -64,7 +64,7 @@ describe 'jQuery couchdb db'
         });
       end
 
-      it 'should call _compact'
+      it 'should trigger _view_cleanup'
         db.viewCleanup({
           success: function(resp, obj) {
             obj.url.should.eql "/spec_db/_view_cleanup"
