@@ -444,7 +444,6 @@
       }
       return uuidCache.shift();
     }
-
   });
 
   function ajax(obj, options, errorMessage, ajaxOptions) {
@@ -459,7 +458,7 @@
           options.ajaxStart(resp);
         }
         if (req.status == options.successStatus) {
-          if (options.success) options.success(resp);
+          if (options.success) options.success(resp, obj);
         } else if (options.error) {
           options.error(req.status, resp.error, resp.reason);
         } else {
