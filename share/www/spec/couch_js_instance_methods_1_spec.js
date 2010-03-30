@@ -108,7 +108,7 @@ describe 'CouchDB instance'
         response.rev.length.should.be_at_least 30
       end
       
-      it 'should result in a saved document'
+      it 'should result in a saved document with generated ID'
         var response  = db.save(doc);
         var saved_doc = db.open(response.id);
         saved_doc.Name.should.eql "Kara Thrace"
