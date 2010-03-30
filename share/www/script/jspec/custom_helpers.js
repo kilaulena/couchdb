@@ -1,3 +1,16 @@
+function stubAlert(){
+  if(typeof(old_alert) == 'undefined'){
+    old_alert = alert;
+  }
+  alert = function(msg){
+    // console.log('alert: ', msg)
+  };
+}
+
+function destubAlert(){
+  alert = old_alert;
+}
+
 function useTestUserDb(){
   users_db = new CouchDB("spec_users_db", {"X-Couch-Full-Commit":"false"});
   var allDbs = CouchDB.allDbs();

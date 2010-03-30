@@ -2,16 +2,11 @@
 
 describe 'jQuery couchdb db'
   before
-    if(typeof(old_alert) == 'undefined'){
-      old_alert = alert;
-    }
-    alert = function(msg){
-      // console.log('alert: ', msg)
-    };
+    stubAlert();
   end
   
   after
-    alert = old_alert;
+    destubAlert();
   end
   
   before_each
