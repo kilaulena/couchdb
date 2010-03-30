@@ -188,6 +188,7 @@ describe 'CouchDB instance'
         doc._attachments = {
           "friend.txt" : {
             "content_type": "text\/plain",
+            // base64 encoded
             "data": "TGVlIEFkYW1hIGlzIGEgZm9ybWVyIENvbG9uaWFsIEZsZWV0IFJlc2VydmUgb2ZmaWNlci4="
           }
         };
