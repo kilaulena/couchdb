@@ -18,7 +18,6 @@ describe 'jQuery couchdb'
     before_each
       db = $.couch.db("spec_db");
       db.create();
-      db.saveDoc({'type':'battlestar', 'name':'galactica'});
     end
     
     after_each
@@ -34,13 +33,36 @@ describe 'jQuery couchdb'
     end
     
     it 'should return an active task'
+      // doing a bit of stuff here so compaction has something to do and takes a while
+      var battlestar, civillian;
+      db.saveDoc({"type":"Battlestar", "name":"Galactica"}, {
+        success: function(resp){ 
+          db.openDoc(resp.id, {
+            success: function(resp2){ battlestar = resp2; }
+          });
+        }
+      });
+      battlestar.name = "Pegasus";
+      db.saveDoc(battlestar);
+      
+      db.saveDoc({"type":"Civillian", "name":"Cloud 9"}, {
+        success: function(resp){ 
+          db.openDoc(resp.id, {
+            success: function(resp2){ civillian = resp2; }
+          });
+        }
+      });
+      civillian.name = "Olympic Carrier";
+      db.saveDoc(civillian);
+      db.removeDoc(civillian);
+      
       db.compact({
         ajaxStart: function(resp){
           $.couch.activeTasks({
             success: function(resp2){
               resp2[0].type.should.eql "Database Compaction"
               resp2[0].task.should.eql "spec_db"
-              resp2[0].status.should.eql "Starting"
+              resp2[0].should.have_prop "status"
               resp2[0].should.include "pid"
             }
           });
@@ -51,14 +73,14 @@ describe 'jQuery couchdb'
   
   describe 'allDbs'
     it 'should return an array that includes a created database'
-      temp_db = $.couch.db("temp_spec_db");
-      temp_db.create();
+      temp_db = new CouchDB("temp_spec_db", {"X-Couch-Full-Commit":"false"});
+      temp_db.createDb();
       $.couch.allDbs({
         success: function(resp){
           resp.should.include "temp_spec_db"
         }
       });
-      temp_db.drop();
+      temp_db.deleteDb();
     end
     
     it 'should return an array that does not include a database that does not exist'
@@ -162,7 +184,7 @@ describe 'jQuery couchdb'
     before
       useTestUserDb();
     end
-
+  
     after
       useOldUserDb();
     end
@@ -272,7 +294,7 @@ describe 'jQuery couchdb'
         });
       end
     end
-
+  
     describe 'logout'
       before_each
         user = {};
@@ -308,7 +330,7 @@ describe 'jQuery couchdb'
       end
     end
   end
-
+  
   describe 'encodeDocId'
     it 'should return the encoded docID when it is not a design document'
       $.couch.encodeDocId("viper").should.eql(encodeURIComponent("viper"))
