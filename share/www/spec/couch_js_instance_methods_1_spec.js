@@ -29,7 +29,7 @@ describe 'CouchDB instance'
       db.request("GET", "/spec_db", {"X-Couch-Full-Commit":"true"});
     end
   end
-  
+    
   describe '.createDb'   
     after_each
       db.deleteDb();
@@ -51,6 +51,11 @@ describe 'CouchDB instance'
       } catch(e) {
         e.error.should.eql "file_exists"
       }
+    end
+    
+    it 'should have create a db with update sequence 0'
+      db.createDb();
+      db.info().update_seq.should.eql 0
     end
   end
    
