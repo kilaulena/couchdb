@@ -45,7 +45,7 @@ describe 'jQuery couchdb db'
           }
         });
       end
-
+    
       it 'should trigger _compact'
         db.compact({
           success: function(resp, obj) {
@@ -54,30 +54,67 @@ describe 'jQuery couchdb db'
         });
       end
     end
-
+    
     describe 'viewCleanup'
+       it 'should return ok true'
+         db.viewCleanup({
+           success: function(resp) {
+             resp.ok.should.be_true
+           }
+         });
+       end
+   
+       it 'should trigger _view_cleanup'
+         db.viewCleanup({
+           success: function(resp, obj) {
+             obj.url.should.eql "/spec_db/_view_cleanup"
+           }
+         });
+       end
+     end
+   
+    describe 'compactView'
+      before_each
+        var designDoc = {
+          "views" : {
+            "people" : {
+              "map" : "function(doc) { emit(doc._id, doc); }"
+            }
+          },
+          "_id" : "_design/spec_db"
+        };
+        db.saveDoc(designDoc);
+        db.saveDoc({"Name" : "Felix Gaeta", "_id" : "123"});
+      end
+      
       it 'should return ok true'
-        db.viewCleanup({
+        db.compactView("spec_db", {
           success: function(resp) {
             resp.ok.should.be_true
           }
         });
       end
-
-      it 'should trigger _view_cleanup'
-        db.viewCleanup({
+  
+      it 'should trigger _compact_view with the groupname'
+        db.compactView("spec_db", {
           success: function(resp, obj) {
-            obj.url.should.eql "/spec_db/_view_cleanup"
+            obj.url.should.eql "/spec_db/_compact/spec_db"
           }
         });
       end
-    end
-
-    describe 'compactView'
-
+      
+      it 'should return raise a 404 error when the design name doesnt exist'
+        db.compactView("non_existing_db_name", {
+          error: function(status, error, reason){
+             status.should.eql 404
+             error.should.eql "not_found"
+             reason.should.eql "missing"
+           }
+        });
+      end
     end
   end
-  
+   
   describe 'create'
     after_each
       db.drop();
