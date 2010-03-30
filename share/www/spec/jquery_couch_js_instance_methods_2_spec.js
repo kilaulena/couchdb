@@ -116,7 +116,58 @@ describe 'jQuery couchdb db'
   end
   
   describe 'allApps'
+    it 'should provide a custom function with appName, appPath and design document when there is an attachment with index.html'
+      var designDoc = {"_id" : "_design/spec_db"};
+      designDoc._attachments = {
+        "index.html" : {
+          "content_type": "text\/html",
+          // base64 encoded
+          "data": "PGh0bWw+PHA+SGksIGhlcmUgaXMgaW5kZXghPC9wPjwvaHRtbD4="
+        }
+      };
+      db.saveDoc(designDoc);
+      
+      db.allApps({
+        eachApp: function(appName, appPath, ddoc) { 
+          appName.should.eql "spec_db"
+          appPath.should.eql "/spec_db/_design/spec_db/index.html"
+          ddoc._id.should.eql "_design/spec_db"
+          ddoc._attachments["index.html"].content_type.should.eql "text/html"
+          ddoc._attachments["index.html"].length.should.be_less_than designDoc._attachments["index.html"].data.length
+        }
+      });
+    end
     
+    it 'should provide a custom function with appName, appPath and design document when there is a couchapp with index file'
+      var designDoc = {"_id" : "_design/spec_db"};
+      designDoc.couchapp = {
+        "index" : "cylon"
+      };
+      db.saveDoc(designDoc);
+      
+      db.allApps({
+        eachApp: function(appName, appPath, ddoc) { 
+          appName.should.eql "spec_db"
+          appPath.should.eql "/spec_db/_design/spec_db/cylon"
+          ddoc._id.should.eql "_design/spec_db"
+          ddoc.couchapp.index.should.eql "cylon"
+        }
+      });
+    end
+    
+    it 'should not call the eachApp function when there is neither index.html in _attachments nor a couchapp index file'
+      var designDoc = {"_id" : "_design/spec_db"};
+      db.saveDoc(designDoc);
+      
+      var eachApp_called = false;
+      db.allApps({
+        eachApp: function(appName, appPath, ddoc) { 
+          eachApp_called = true;
+        }
+      });
+      
+      eachApp_called.should.be_false
+    end
   end
   
   describe 'openDoc'
