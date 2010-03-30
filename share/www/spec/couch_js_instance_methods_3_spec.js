@@ -145,7 +145,7 @@ describe 'CouchDB instance'
     end
    
     it 'should throw an error when the property doesnt exist'
-      -{ db.getDbProperty("_doesnt_exist")}.should.throw_error
+      function(){ db.getDbProperty("_doesnt_exist")}.should.throw_error
     end
   end 
   
