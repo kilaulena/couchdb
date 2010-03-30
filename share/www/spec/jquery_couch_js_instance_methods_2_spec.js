@@ -208,7 +208,69 @@ describe 'jQuery couchdb db'
   end
   
   describe 'saveDoc'
+    before_each
+      doc = {"Name" : "Kara Thrace", "Callsign" : "Starbuck"};
+    end
+
+    it 'should save the document'
+      db.saveDoc(doc, {
+        success: function(resp, status){
+          status.should.eql 201
+        }
+      });
+    end
+      
+    it 'should return ok true'
+      db.saveDoc(doc, {
+        success: function(resp, status){
+          resp.ok.should.be_true
+        }
+      });
+    end
     
+    it 'should return ID and revision of the document'
+      db.saveDoc(doc, {
+        success: function(resp, status){
+          resp.id.should.be_a String
+          resp.id.should.have_length 32
+          resp.rev.should.be_a String
+          resp.rev.length.should.be_at_least 30
+        }
+      });
+    end
+    
+    it 'should result in a saved document with generated ID'
+      db.saveDoc(doc, {
+        success: function(resp, status){
+          db.openDoc(resp.id, {
+            success: function(resp2){
+              resp2.Name.should.eql "Kara Thrace"
+              resp2.Callsign.should.eql "Starbuck"
+            }
+          });
+        }
+      });
+
+    end
+    
+    it 'should save the document with the specified ID'
+      doc._id = "123";
+      db.saveDoc(doc, {
+        success: function(resp, status){
+          resp.id.should.eql "123"
+        }
+      });
+    end
+  
+    it 'should pass through the options'
+      db.saveDoc(doc, {
+        "batch" : "ok",
+        success: function(resp, status){
+          // when using batch ok, couch sends a 202 status immediately
+          status.should.eql 202
+        }
+      });
+    end
   end
   
   describe 'bulkSave'
