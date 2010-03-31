@@ -163,6 +163,13 @@ describe 'CouchDB instance'
         db.open("123").should.be_null
       end
     
+      it 'should return ok true, the ID and the revision of the deleted document'
+        delete_response.ok.should.be_true
+        delete_response.id.should.eql "123"
+        delete_response.rev.should.be_a String
+        delete_response.rev.length.should.be_at_least 30
+      end
+      
       it 'should mark the document as deleted'
         var responseText = db.request("GET", "/spec_db/123").responseText;
         JSON.parse(responseText).should.eql {"error":"not_found","reason":"deleted"}
@@ -173,12 +180,7 @@ describe 'CouchDB instance'
         var deleted_doc = JSON.parse(responseText);
         deleted_doc._rev.should.eql delete_response.rev
         deleted_doc._id.should.eql delete_response.id
-      end
-    
-      it 'should return ok true, the ID and the revision of the deleted document'
-        delete_response.ok.should.be_true
-        delete_response.id.should.eql "123"
-        delete_response.should.have_property "rev"
+        deleted_doc._deleted.should.be_true
       end
     end
       
