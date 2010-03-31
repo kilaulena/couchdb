@@ -250,7 +250,6 @@ describe 'jQuery couchdb db'
           });
         }
       });
-
     end
     
     it 'should save the document with the specified ID'
