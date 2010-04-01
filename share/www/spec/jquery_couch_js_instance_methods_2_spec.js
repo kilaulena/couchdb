@@ -22,7 +22,8 @@ describe 'jQuery couchdb db'
     before_each
       result = {};
       db.info({
-        success: function(resp) { result = resp; }
+        success: function(resp) { result = resp; },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -45,7 +46,8 @@ describe 'jQuery couchdb db'
         success: function(resp) { 
           resp.total_rows.should.eql 0
           resp.rows.should.eql []
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -64,7 +66,8 @@ describe 'jQuery couchdb db'
             resp.rows[0].key.should.eql "123"
             resp.rows[0].value.rev.length.should.be_at_least 30
             resp.rows[1].id.should.eql "456"
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
     
@@ -75,7 +78,8 @@ describe 'jQuery couchdb db'
           success: function(resp) { 
             resp.rows.should.have_length 1
             resp.rows[0].id.should.eql "123"
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
     end
@@ -87,7 +91,8 @@ describe 'jQuery couchdb db'
       db.allDesignDocs({
         success: function(resp) { 
           resp.rows.should.eql []
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -110,7 +115,8 @@ describe 'jQuery couchdb db'
           resp.rows[0].id.should.eql "_design/spec_db"
           resp.rows[0].key.should.eql "_design/spec_db"
           resp.rows[0].value.rev.length.should.be_at_least 30
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -134,7 +140,8 @@ describe 'jQuery couchdb db'
           ddoc._id.should.eql "_design/spec_db"
           ddoc._attachments["index.html"].content_type.should.eql "text/html"
           ddoc._attachments["index.html"].length.should.be_less_than designDoc._attachments["index.html"].data.length
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -151,7 +158,8 @@ describe 'jQuery couchdb db'
           appPath.should.eql "/spec_db/_design/spec_db/cylon"
           ddoc._id.should.eql "_design/spec_db"
           ddoc.couchapp.index.should.eql "cylon"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -163,7 +171,8 @@ describe 'jQuery couchdb db'
       db.allApps({
         eachApp: function(appName, appPath, ddoc) { 
           eachApp_called = true;
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       
       eachApp_called.should.be_false
@@ -180,7 +189,8 @@ describe 'jQuery couchdb db'
       db.openDoc("123", {
         success: function(resp){
           resp.should.eql doc
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   
@@ -190,7 +200,8 @@ describe 'jQuery couchdb db'
           status.should.eql 404
           error.should.eql "not_found"
           reason.should.eql "missing"
-        }
+        },
+        success: function(resp){successCallback(resp)}
       });
     end
   
@@ -202,7 +213,8 @@ describe 'jQuery couchdb db'
         success: function(resp){
           resp._revisions.start.should.eql 2
           resp._revisions.ids.should.have_length 2
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -216,7 +228,8 @@ describe 'jQuery couchdb db'
       db.saveDoc(doc, {
         success: function(resp, status){
           status.should.eql 201
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
       
@@ -224,7 +237,8 @@ describe 'jQuery couchdb db'
       db.saveDoc(doc, {
         success: function(resp, status){
           resp.ok.should.be_true
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -235,7 +249,8 @@ describe 'jQuery couchdb db'
           resp.id.should.have_length 32
           resp.rev.should.be_a String
           resp.rev.length.should.be_at_least 30
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -246,9 +261,11 @@ describe 'jQuery couchdb db'
             success: function(resp2){
               resp2.Name.should.eql "Kara Thrace"
               resp2.Callsign.should.eql "Starbuck"
-            }
+            },
+            error: function(status, error, reason){errorCallback(status, error, reason)}
           });
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -257,7 +274,8 @@ describe 'jQuery couchdb db'
       db.saveDoc(doc, {
         success: function(resp, status){
           resp.id.should.eql "123"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   
@@ -267,7 +285,8 @@ describe 'jQuery couchdb db'
         success: function(resp, status){
           // when using batch ok, couch sends a 202 status immediately
           status.should.eql 202
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -285,7 +304,8 @@ describe 'jQuery couchdb db'
       db.allDocs({
         success: function(resp) { 
           resp.total_rows.should.eql 3
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -297,7 +317,8 @@ describe 'jQuery couchdb db'
         success: function(resp){
           resp.Name.should.eql "Sharon Valerii"
           resp.Callsign.should.eql "Boomer"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -316,7 +337,8 @@ describe 'jQuery couchdb db'
           resp[2].id.should.have_length 32
           resp[2].rev.should.be_a String
           resp[2].rev.length.should.be_at_least 30
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
       
@@ -330,7 +352,8 @@ describe 'jQuery couchdb db'
           resp[0].id.should.eql "123"
           resp[1].id.should.eql "456"
           resp[2].id.should.have_length 32
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -342,7 +365,8 @@ describe 'jQuery couchdb db'
       db.saveDoc(old_doc, {
         success: function(resp){
           old_doc._rev = resp.rev;
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       
       var new_doc = {"Name" : "Sasha", "Callsign" : "Kat", "_id" : "123"};
@@ -352,21 +376,24 @@ describe 'jQuery couchdb db'
           resp[0].id.should.eql "123"
           resp[0].error.should.eql "conflict"
           resp[0].reason.should.eql "Document update conflict."
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       
       db.bulkSave({"docs": [new_doc], "all_or_nothing": true}, {
         success: function(resp){
           resp[0].id.should.eql "123"
           resp[0].rev.should.not.eql old_doc._rev
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       
       db.openDoc("123", { 
         "conflicts": true,
         success: function(resp){
           resp._conflicts[0].should.eql old_doc._rev
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end

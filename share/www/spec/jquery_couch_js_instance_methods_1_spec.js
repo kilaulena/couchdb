@@ -37,7 +37,8 @@ describe 'jQuery couchdb db'
         db.compact({
           success: function(resp) {
             resp.ok.should.be_true
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
     
@@ -45,7 +46,8 @@ describe 'jQuery couchdb db'
         db.compact({
           success: function(resp, obj) {
             obj.url.should.eql "/spec_db/_compact"
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
     end
@@ -55,7 +57,8 @@ describe 'jQuery couchdb db'
          db.viewCleanup({
            success: function(resp) {
              resp.ok.should.be_true
-           }
+           },
+           error: function(status, error, reason){errorCallback(status, error, reason)}
          });
        end
    
@@ -63,7 +66,8 @@ describe 'jQuery couchdb db'
          db.viewCleanup({
            success: function(resp, obj) {
              obj.url.should.eql "/spec_db/_view_cleanup"
-           }
+           },
+           error: function(status, error, reason){errorCallback(status, error, reason)}
          });
        end
      end
@@ -86,7 +90,8 @@ describe 'jQuery couchdb db'
         db.compactView("spec_db", {
           success: function(resp) {
             resp.ok.should.be_true
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
   
@@ -94,17 +99,19 @@ describe 'jQuery couchdb db'
         db.compactView("spec_db", {
           success: function(resp, obj) {
             obj.url.should.eql "/spec_db/_compact/spec_db"
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
       
       it 'should return raise a 404 error when the design name doesnt exist'
         db.compactView("non_existing_db_name", {
           error: function(status, error, reason){
-             status.should.eql 404
-             error.should.eql "not_found"
-             reason.should.eql "missing"
-           }
+            status.should.eql 404
+            error.should.eql "not_found"
+            reason.should.eql "missing"
+          },
+          success: function(resp){successCallback(resp)}
         });
       end
     end
@@ -119,7 +126,8 @@ describe 'jQuery couchdb db'
       db.create({
         success: function(resp) {
           resp.ok.should.be_true
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -130,7 +138,8 @@ describe 'jQuery couchdb db'
           status.should.eql 412
           error.should.eql "file_exists"
           reason.should.eql "The database could not be created, the file already exists."
-        }
+        },
+        success: function(resp){successCallback(resp)}
       });
     end
   end
@@ -144,7 +153,8 @@ describe 'jQuery couchdb db'
       db.drop({
         success: function(resp) {
           resp.ok.should.be_true
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -155,7 +165,8 @@ describe 'jQuery couchdb db'
           status.should.eql 404
           error.should.eql "not_found"
           reason.should.eql "missing"
-        }
+        },
+        success: function(resp){successCallback(resp)}
       });
     end
   end

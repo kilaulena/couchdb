@@ -25,7 +25,8 @@ describe 'jQuery couchdb db'
       db.saveDoc(doc, {
         success: function(resp){
           saved_doc = resp; 
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -37,9 +38,11 @@ describe 'jQuery couchdb db'
               status.should.eql 404
               error.should.eql "not_found"
               reason.should.eql "deleted"
-            }
+            },
+            success: function(resp){successCallback(resp)}
           });
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   
@@ -50,7 +53,8 @@ describe 'jQuery couchdb db'
           resp.id.should.eql "123"
           resp.rev.should.be_a String
           resp.rev.length.should.be_at_least 30
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
       
@@ -63,9 +67,11 @@ describe 'jQuery couchdb db'
               resp2._rev.should.eql resp.rev
               resp2._id.should.eql resp.id
               resp2._deleted.should.be_true
-            }
+            },
+            error: function(status, error, reason){errorCallback(status, error, reason)}
           });
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -82,7 +88,8 @@ describe 'jQuery couchdb db'
           for (var i = 0; i < docs.length; i++) {
             docs[i]._rev = resp[i].rev;
           }
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -91,7 +98,8 @@ describe 'jQuery couchdb db'
       db.allDocs({
         success: function(resp) { 
           resp.total_rows.should.eql 0
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -100,7 +108,8 @@ describe 'jQuery couchdb db'
       db.allDocs({
         success: function(resp) { 
           resp.total_rows.should.eql 2
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -112,9 +121,11 @@ describe 'jQuery couchdb db'
               status.should.eql 404
               error.should.eql "not_found"
               reason.should.eql "deleted"
-            }
+            },
+            success: function(resp){successCallback(resp)}
           });
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   
@@ -130,7 +141,8 @@ describe 'jQuery couchdb db'
           resp[2].id.should.eql "789"
           resp[2].rev.should.be_a String
           resp[2].rev.length.should.be_at_least 30
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   
@@ -143,9 +155,11 @@ describe 'jQuery couchdb db'
               resp2._rev.should.eql resp[0].rev
               resp2._id.should.eql resp[0].id
               resp2._deleted.should.be_true
-            }
+            },
+            error: function(status, error, reason){errorCallback(status, error, reason)}
           });
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -176,7 +190,8 @@ describe 'jQuery couchdb db'
           resp.rows[2].id.should.eql "789"
           resp.rows[2].key.should.eql "789"
           resp.rows[2].value.should.eql 1
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -186,7 +201,8 @@ describe 'jQuery couchdb db'
           resp.rows.should.have_length 1
           resp.rows[0].key.should.be_null
           resp.rows[0].value.should_eql 3
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -201,12 +217,14 @@ describe 'jQuery couchdb db'
           resp.rows[1].id.should.eql "789"
           resp.rows[1].key.should.eql "789"
           resp.rows[1].value.should.eql 1
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
     it 'should pass through the keys'
-      //shouldn't this better work?
+      //shouldn't this better work? TODO: implement in jquery.couch.js
+      console.log("shouldn't this better work? TODO: implement in jquery.couch.js")
       db.query(map_function, null, null, {
         "keys": ["456", "123"],
         success: function(resp){
@@ -217,12 +235,14 @@ describe 'jQuery couchdb db'
           resp.rows[1].id.should.eql "123"
           resp.rows[1].key.should.eql "123"
           resp.rows[1].value.should.eql 1
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
       
     it 'should pass through the options and the keys'
-      //shouldn't this better work?
+      //shouldn't this better work? TODO: implement in jquery.couch.js
+      console.log("shouldn't this better work? TODO: implement in jquery.couch.js")
       db.query(map_function, null, null, {
         "include_docs":"true",
         "keys": ["456"],
@@ -233,7 +253,8 @@ describe 'jQuery couchdb db'
           resp.rows[0].value.should.eql 1
           resp.rows[0].doc["job"].should.eql "pilot"
           resp.rows[0].doc["_rev"].length.should.be_at_least 30
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
       
@@ -255,7 +276,8 @@ describe 'jQuery couchdb db'
           resp.rows[2].id.should.eql "789"
           resp.rows[2].key.should.eql "789"
           resp.rows[2].value.should.eql 1
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -289,7 +311,8 @@ describe 'jQuery couchdb db'
           resp.rows[2].id.should.eql "789"
           resp.rows[2].key.should.eql "789"
           resp.rows[2].value.should.eql "Cally Tyrol"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -301,7 +324,8 @@ describe 'jQuery couchdb db'
           resp.rows[0].id.should.eql "789"
           resp.rows[0].key.should.eql "789"
           resp.rows[0].value.should.eql "Cally Tyrol"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -316,7 +340,8 @@ describe 'jQuery couchdb db'
           resp.rows[1].id.should.eql "123"
           resp.rows[1].key.should.eql "123"
           resp.rows[1].value.should.eql "Felix Gaeta"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -331,7 +356,8 @@ describe 'jQuery couchdb db'
           resp.rows[0].value.should.eql "Samuel T. Anders"
           resp.rows[0].doc["job"].should.eql "pilot"
           resp.rows[0].doc["_rev"].length.should.be_at_least 30
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -341,7 +367,8 @@ describe 'jQuery couchdb db'
           status.should.eql 404
           error.should.eql "not_found"
           reason.should.eql "missing_named_view"
-        }
+        },
+        success: function(resp){successCallback(resp)}
       });
     end
   end
@@ -351,7 +378,8 @@ describe 'jQuery couchdb db'
       db.setDbProperty("_revs_limit", 1500, {
         success: function(resp){
           resp.ok.should.be_true
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -360,13 +388,15 @@ describe 'jQuery couchdb db'
       db.getDbProperty("_revs_limit", {
         success: function(resp){
           resp.should.eql 1500
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       db.setDbProperty("_revs_limit", 1200);
       db.getDbProperty("_revs_limit", {
         success: function(resp){
           resp.should.eql 1200
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -377,7 +407,8 @@ describe 'jQuery couchdb db'
       db.getDbProperty("_revs_limit", {
         success: function(resp){
           resp.should.eql 1200
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
    
@@ -387,7 +418,8 @@ describe 'jQuery couchdb db'
           status.should.eql 404
           error.should.eql "not_found"
           reason.should.eql "missing"
-        }
+        },
+        success: function(resp){successCallback(resp)}
       });
     end
   end

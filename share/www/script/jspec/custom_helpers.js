@@ -11,6 +11,16 @@ function destubAlert(){
   alert = old_alert;
 }
 
+function errorCallback(status, error, reason){
+  console.log("Unexpected " + status + " error: " + error + " - " + reason)
+  throw("Unexpected " + status + " error: " + error + " - " + reason);
+}
+
+function successCallback(resp){
+  console.log("No error message here unexpectedly, successful response instead.")
+  throw("No error message here unexpectedly, successful response instead.");
+}
+
 function useTestUserDb(){
   users_db = new CouchDB("spec_users_db", {"X-Couch-Full-Commit":"false"});
   var allDbs = CouchDB.allDbs();

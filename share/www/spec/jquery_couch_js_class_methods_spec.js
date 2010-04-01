@@ -23,7 +23,8 @@ describe 'jQuery couchdb'
       $.couch.activeTasks({
         success: function(resp){
           resp.should.eql []
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -33,9 +34,13 @@ describe 'jQuery couchdb'
       db.saveDoc({"type":"Battlestar", "name":"Galactica"}, {
         success: function(resp){ 
           db.openDoc(resp.id, {
-            success: function(resp2){ battlestar = resp2; }
+            success: function(resp2){ 
+              battlestar = resp2; 
+            },
+            error: function(status, error, reason){errorCallback(status, error, reason)}
           });
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       battlestar.name = "Pegasus";
       db.saveDoc(battlestar);
@@ -43,9 +48,13 @@ describe 'jQuery couchdb'
       db.saveDoc({"type":"Civillian", "name":"Cloud 9"}, {
         success: function(resp){ 
           db.openDoc(resp.id, {
-            success: function(resp2){ civillian = resp2; }
+            success: function(resp2){ 
+              civillian = resp2; 
+            },
+            error: function(status, error, reason){errorCallback(status, error, reason)}
           });
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       civillian.name = "Olympic Carrier";
       db.saveDoc(civillian);
@@ -59,7 +68,8 @@ describe 'jQuery couchdb'
               resp2[0].task.should.eql "spec_db"
               resp2[0].should.have_prop "status"
               resp2[0].should.include "pid"
-            }
+            },
+            error: function(status, error, reason){errorCallback(status, error, reason)}
           });
         }
       });
@@ -73,7 +83,8 @@ describe 'jQuery couchdb'
       $.couch.allDbs({
         success: function(resp){
           resp.should.include "temp_spec_db"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       temp_db.deleteDb();
     end
@@ -82,7 +93,8 @@ describe 'jQuery couchdb'
       $.couch.allDbs({
         success: function(resp){
           resp.should.not.include("not_existing_temp_spec_db");
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -94,7 +106,8 @@ describe 'jQuery couchdb'
           resp.httpd.port.should.eql window.location.port
           resp.stats.samples.should.match /\[.*\]/
           resp.native_query_servers.should.have_prop "erlang"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -104,7 +117,8 @@ describe 'jQuery couchdb'
           parseInt(resp.max_document_size).should.be_a Number
           resp.delayed_commits.should.be_a String
           resp.database_dir.should.be_a String
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       }, "couchdb");
     end
     
@@ -112,13 +126,15 @@ describe 'jQuery couchdb'
       $.couch.config({
         success: function(resp){
           resp.should.eql ""
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       }, "test", "colony", "Caprica");
       
       $.couch.config({
         success: function(resp){
           resp.colony.should.eql "Caprica"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       }, "test");
       
       $.couch.config({}, "test", "colony", null);
@@ -130,13 +146,15 @@ describe 'jQuery couchdb'
       $.couch.config({
         success: function(resp){
           resp.should.eql "Caprica"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       }, "test", "colony", null);
       
       $.couch.config({
         success: function(resp){
           resp.should.eql {}
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       }, "test");
     end
   end
@@ -148,7 +166,8 @@ describe 'jQuery couchdb'
           resp.info.should.have_prop 'authentication_db'
           resp.userCtx.should.include 'name'
           resp.userCtx.roles.should.be_an Array
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -159,7 +178,8 @@ describe 'jQuery couchdb'
       $.couch.session({
         success: function(resp){
           authentication_db = resp.info.authentication_db;
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       
       $.couch.userDb(function(resp){
@@ -193,7 +213,8 @@ describe 'jQuery couchdb'
             resp.rev.length.should.be_at_least 30
             resp.ok.should.be_true
             users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
     
@@ -208,7 +229,8 @@ describe 'jQuery couchdb'
             user.password_sha.length.should.be_at_least 30
             user.password_sha.should.be_a String
             users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
     
@@ -219,7 +241,8 @@ describe 'jQuery couchdb'
             var user = users_db.open(resp.id);
             user.roles.should.eql ["vice_president", "activist"]
             users_db.deleteDoc({_id : resp.id, _rev : resp.rev})
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
     end
@@ -231,7 +254,8 @@ describe 'jQuery couchdb'
           success: function(resp){
             user.id  = resp.id;
             user.rev = resp.rev;
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
       
@@ -247,7 +271,8 @@ describe 'jQuery couchdb'
             resp.name.should.eql "Tom Zarek"
             resp.ok.should.be_true
             resp.roles.should.eql ["vice_president", "activist"]
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
       
@@ -261,7 +286,8 @@ describe 'jQuery couchdb'
             resp.info.authentication_db.should.eql "spec_users_db"
             resp.userCtx.name.should.eql "Tom Zarek"
             resp.userCtx.roles.should.eql ["vice_president", "activist"]
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
       
@@ -273,7 +299,8 @@ describe 'jQuery couchdb'
             status.should.eql 401
             error.should.eql "unauthorized"
             reason.should.eql "Name or password is incorrect."
-          }
+          },
+          success: function(resp){successCallback(resp)}
         });
       end
       
@@ -285,7 +312,8 @@ describe 'jQuery couchdb'
             status.should.eql 401
             error.should.eql "unauthorized"
             reason.should.eql "Name or password is incorrect."
-          }
+          },
+          success: function(resp){successCallback(resp)}
         });
       end
     end
@@ -297,7 +325,8 @@ describe 'jQuery couchdb'
           success: function(resp){
             user.id  = resp.id;
             user.rev = resp.rev;
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
         $.couch.login({name: "Tom Zarek", password: "secretpass"});
       end
@@ -310,7 +339,8 @@ describe 'jQuery couchdb'
         $.couch.logout({
           success: function(resp){
             resp.ok.should.be_true
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
       
@@ -320,7 +350,8 @@ describe 'jQuery couchdb'
           success: function(resp){
             resp.userCtx.name.should.be_null
             resp.userCtx.roles.should.not.include ["vice_president"]
-          }
+          },
+          error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
     end
@@ -346,7 +377,8 @@ describe 'jQuery couchdb'
         success: function(resp){
           resp.couchdb.should.eql "Welcome"
           resp.version.should_match /^\d\d?\.\d\d?\.\d\d?.*/
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
@@ -370,7 +402,8 @@ describe 'jQuery couchdb'
         success: function(resp){
           resp.ok.should.be_true
           resp.no_changes.should.be_true
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -379,7 +412,8 @@ describe 'jQuery couchdb'
       $.couch.replicate(host + db.uri, host + db2.uri, {
         success: function(resp){
           resp.session_id.length.should.be_at_least 30
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -390,7 +424,8 @@ describe 'jQuery couchdb'
       $.couch.replicate(host + db.uri, host + db2.uri, {
         success: function(resp){
           resp.source_last_seq.should.eql 2
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -402,7 +437,8 @@ describe 'jQuery couchdb'
         success: function(resp){
           resp.history[0].docs_written.should.eql 2
           resp.history[0].start_last_seq.should.eql 0
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
     
@@ -413,7 +449,8 @@ describe 'jQuery couchdb'
         error: function(status, error, reason){
           status.should.eql 500
           reason.should.match /db_not_found/
-        }
+        },
+        success: function(resp){successCallback(resp)}
       });
       
       // this is failing because the ajax call is ignoring the options. 
@@ -432,12 +469,15 @@ describe 'jQuery couchdb'
           error.should.not.eql 'case_clause'
           reason.should.be_empty
         }
+        // },
+        // error: function(status, error, reason){errorCallback(status, error, reason)}
       });
       
       db2.info({
         success: function(resp){
           resp.db_name.should.eql "spec_db_2"
-        }
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
   end
