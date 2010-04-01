@@ -117,7 +117,7 @@ describe 'jQuery couchdb db'
         }
       });
     end
-
+  
     it 'should return the ID and the revision of the deleted documents'
       db.bulkRemove({"docs": docs}, {
         success: function(resp){
@@ -133,7 +133,7 @@ describe 'jQuery couchdb db'
         }
       });
     end
-
+  
     it 'should record the revision in the deleted documents'
       db.bulkRemove({"docs": docs}, {
         success: function(resp){
@@ -151,22 +151,244 @@ describe 'jQuery couchdb db'
   end
   
   describe 'copyDoc'
-    
+
   end
   
   describe 'query'
+    before_each
+      db.saveDoc({"Name" : "Cally Tyrol",      "job" : "deckhand", "_id" : "789"});
+      db.saveDoc({"Name" : "Felix Gaeta",      "job" : "officer",  "_id" : "123"});
+      db.saveDoc({"Name" : "Samuel T. Anders", "job" : "pilot",    "_id" : "456"});
+      map_function    = "function(doc) { emit(doc._id, 1); }";
+      reduce_function = "function(key, values, rereduce) { return sum(values); }";
+    end
     
+    it 'should apply the map function'
+      db.query(map_function, null, null, {
+        success: function(resp){
+          resp.rows.should.have_length 3
+          resp.rows[0].id.should.eql "123"
+          resp.rows[0].key.should.eql "123"
+          resp.rows[0].value.should.eql 1
+          resp.rows[1].id.should.eql "456"
+          resp.rows[1].key.should.eql "456"
+          resp.rows[1].value.should.eql 1
+          resp.rows[2].id.should.eql "789"
+          resp.rows[2].key.should.eql "789"
+          resp.rows[2].value.should.eql 1
+        }
+      });
+    end
+    
+    it 'should apply the reduce function'
+      db.query(map_function, reduce_function, null, {
+        success: function(resp){
+          resp.rows.should.have_length 1
+          resp.rows[0].key.should.be_null
+          resp.rows[0].value.should_eql 3
+        }
+      });
+    end
+    
+    it 'should pass through the options'
+      db.query(map_function, null, null, {
+        "startkey": "456",
+        success: function(resp){
+          resp.rows.should.have_length 2
+          resp.rows[0].id.should.eql "456"
+          resp.rows[0].key.should.eql "456"
+          resp.rows[0].value.should.eql 1
+          resp.rows[1].id.should.eql "789"
+          resp.rows[1].key.should.eql "789"
+          resp.rows[1].value.should.eql 1
+        }
+      });
+    end
+    
+    it 'should pass through the keys'
+      //shouldn't this better work?
+      db.query(map_function, null, null, {
+        "keys": ["456", "123"],
+        success: function(resp){
+          resp.rows.should.have_length 2
+          resp.rows[0].id.should.eql "456"
+          resp.rows[0].key.should.eql "456"
+          resp.rows[0].value.should.eql 1
+          resp.rows[1].id.should.eql "123"
+          resp.rows[1].key.should.eql "123"
+          resp.rows[1].value.should.eql 1
+        }
+      });
+    end
+      
+    it 'should pass through the options and the keys'
+      //shouldn't this better work?
+      db.query(map_function, null, null, {
+        "include_docs":"true",
+        "keys": ["456"],
+        success: function(resp){
+          resp.rows.should.have_length 1
+          resp.rows[0].id.should.eql "456"
+          resp.rows[0].key.should.eql "456"
+          resp.rows[0].value.should.eql 1
+          resp.rows[0].doc["job"].should.eql "pilot"
+          resp.rows[0].doc["_rev"].length.should.be_at_least 30
+        }
+      });
+    end
+      
+    it 'should apply a view in erlang also'
+      // when this test fails, read this: http://wiki.apache.org/couchdb/EnableErlangViews
+      var erlang_map = 'fun({Doc}) -> ' +
+                       'ID = proplists:get_value(<<"_id">>, Doc, null), ' +
+                       'Emit(ID, 1) ' +
+                       'end.';
+      db.query(erlang_map, null, "erlang", {
+        success: function(resp){
+          resp.rows.should.have_length 3
+          resp.rows[0].id.should.eql "123"
+          resp.rows[0].key.should.eql "123"
+          resp.rows[0].value.should.eql 1
+          resp.rows[1].id.should.eql "456"
+          resp.rows[1].key.should.eql "456"
+          resp.rows[1].value.should.eql 1
+          resp.rows[2].id.should.eql "789"
+          resp.rows[2].key.should.eql "789"
+          resp.rows[2].value.should.eql 1
+        }
+      });
+    end
   end
   
   describe 'view'
+    before_each
+      db.saveDoc({"Name" : "Cally Tyrol",      "job" : "deckhand", "_id" : "789"});
+      db.saveDoc({"Name" : "Felix Gaeta",      "job" : "officer",  "_id" : "123"});
+      db.saveDoc({"Name" : "Samuel T. Anders", "job" : "pilot",    "_id" : "456"});
+      view = {
+        "views" : {
+          "people" : {
+            "map" : "function(doc) { emit(doc._id, doc.Name); }"
+          }
+        },
+        "_id" : "_design/spec_db"
+      };
+      db.saveDoc(view);
+    end
     
-  end
-  
-  describe 'getDbProperty'
+    it 'should apply the view'
+      db.view('spec_db/people', {
+        success: function(resp){
+          resp.rows.should.have_length 3
+          resp.rows[0].id.should.eql "123"
+          resp.rows[0].key.should.eql "123"
+          resp.rows[0].value.should.eql "Felix Gaeta"
+          resp.rows[1].id.should.eql "456"
+          resp.rows[1].key.should.eql "456"
+          resp.rows[1].value.should.eql "Samuel T. Anders"
+          resp.rows[2].id.should.eql "789"
+          resp.rows[2].key.should.eql "789"
+          resp.rows[2].value.should.eql "Cally Tyrol"
+        }
+      });
+    end
     
+    it 'should pass through the options'
+      db.view('spec_db/people', {
+        "skip":"2",
+        success: function(resp){
+          resp.rows.should.have_length 1
+          resp.rows[0].id.should.eql "789"
+          resp.rows[0].key.should.eql "789"
+          resp.rows[0].value.should.eql "Cally Tyrol"
+        }
+      });
+    end
+    
+    it 'should pass through the keys'
+      db.view('spec_db/people', {
+        "keys":["456", "123"],
+        success: function(resp){
+          resp.rows.should.have_length 2
+          resp.rows[0].id.should.eql "456"
+          resp.rows[0].key.should.eql "456"
+          resp.rows[0].value.should.eql "Samuel T. Anders"
+          resp.rows[1].id.should.eql "123"
+          resp.rows[1].key.should.eql "123"
+          resp.rows[1].value.should.eql "Felix Gaeta"
+        }
+      });
+    end
+    
+    it 'should pass through the options and the keys'
+      db.view('spec_db/people', {
+        "include_docs":"true",
+        "keys":["456"],
+        success: function(resp){
+          resp.rows.should.have_length 1
+          resp.rows[0].id.should.eql "456"
+          resp.rows[0].key.should.eql "456"
+          resp.rows[0].value.should.eql "Samuel T. Anders"
+          resp.rows[0].doc["job"].should.eql "pilot"
+          resp.rows[0].doc["_rev"].length.should.be_at_least 30
+        }
+      });
+    end
+    
+    it 'should throw a 404 when the view doesnt exist'
+      db.view('spec_db/non_existing_view', {
+        error: function(status, error, reason){
+          status.should.eql 404
+          error.should.eql "not_found"
+          reason.should.eql "missing_named_view"
+        }
+      });
+    end
   end
   
   describe 'setDbProperty'
+    it 'should return ok true'
+      db.setDbProperty("_revs_limit", 1500, {
+        success: function(resp){
+          resp.ok.should.be_true
+        }
+      });
+    end
     
+    it 'should set a db property'
+      db.setDbProperty("_revs_limit", 1500);
+      db.getDbProperty("_revs_limit", {
+        success: function(resp){
+          resp.should.eql 1500
+        }
+      });
+      db.setDbProperty("_revs_limit", 1200);
+      db.getDbProperty("_revs_limit", {
+        success: function(resp){
+          resp.should.eql 1200
+        }
+      });
+    end
+  end
+  
+  describe 'getDbProperty'
+    it 'should get a db property'
+      db.setDbProperty("_revs_limit", 1200);
+      db.getDbProperty("_revs_limit", {
+        success: function(resp){
+          resp.should.eql 1200
+        }
+      });
+    end
+   
+    it 'should throw a 404 when the property doesnt exist'
+      db.getDbProperty("_doesnt_exist", {
+        error: function(status, error, reason){
+          status.should.eql 404
+          error.should.eql "not_found"
+          reason.should.eql "missing"
+        }
+      });
+    end
   end
 end
