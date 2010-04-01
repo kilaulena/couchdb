@@ -70,26 +70,26 @@ describe 'CouchDB instance'
     end
     
     it 'should pass through the keys'
-     var result = db.query(map_function, null, {}, ["456", "123"]);
-    
-     result.rows.should.have_length 2
-     result.rows[0].id.should.eql "456"
-     result.rows[0].key.should.eql "456"
-     result.rows[0].value.should.eql 1
-     result.rows[1].id.should.eql "123"
-     result.rows[1].key.should.eql "123"
-     result.rows[1].value.should.eql 1
+      var result = db.query(map_function, null, {}, ["456", "123"]);
+
+      result.rows.should.have_length 2
+      result.rows[0].id.should.eql "456"
+      result.rows[0].key.should.eql "456"
+      result.rows[0].value.should.eql 1
+      result.rows[1].id.should.eql "123"
+      result.rows[1].key.should.eql "123"
+      result.rows[1].value.should.eql 1
     end
       
     it 'should pass through the options and the keys'
       var result = db.query(map_function, null, {"include_docs":"true"}, ["456"]);
     
-     result.rows.should.have_length 1
-     result.rows[0].id.should.eql "456"
-     result.rows[0].key.should.eql "456"
-     result.rows[0].value.should.eql 1
-     result.rows[0].doc["job"].should.eql "pilot"
-     result.rows[0].doc["_rev"].length.should.be_at_least 30
+      result.rows.should.have_length 1
+      result.rows[0].id.should.eql "456"
+      result.rows[0].key.should.eql "456"
+      result.rows[0].value.should.eql 1
+      result.rows[0].doc["job"].should.eql "pilot"
+      result.rows[0].doc["_rev"].length.should.be_at_least 30
     end
   
     it 'should apply a view in erlang also'
@@ -154,26 +154,26 @@ describe 'CouchDB instance'
     end
     
     it 'should pass through the keys'
-     var result = db.view('spec_db/people', {}, ["456", "123"]);
-      
-     result.rows.should.have_length 2
-     result.rows[0].id.should.eql "456"
-     result.rows[0].key.should.eql "456"
-     result.rows[0].value.should.eql "Samuel T. Anders"
-     result.rows[1].id.should.eql "123"
-     result.rows[1].key.should.eql "123"
-     result.rows[1].value.should.eql "Felix Gaeta"
+      var result = db.view('spec_db/people', {}, ["456", "123"]);
+
+      result.rows.should.have_length 2
+      result.rows[0].id.should.eql "456"
+      result.rows[0].key.should.eql "456"
+      result.rows[0].value.should.eql "Samuel T. Anders"
+      result.rows[1].id.should.eql "123"
+      result.rows[1].key.should.eql "123"
+      result.rows[1].value.should.eql "Felix Gaeta"
     end
     
     it 'should pass through the options and the keys'
       var result = db.view('spec_db/people', {"include_docs":"true"}, ["456"]);
       
-     result.rows.should.have_length 1
-     result.rows[0].id.should.eql "456"
-     result.rows[0].key.should.eql "456"
-     result.rows[0].value.should.eql "Samuel T. Anders"
-     result.rows[0].doc["job"].should.eql "pilot"
-     result.rows[0].doc["_rev"].length.should.be_at_least 30
+      result.rows.should.have_length 1
+      result.rows[0].id.should.eql "456"
+      result.rows[0].key.should.eql "456"
+      result.rows[0].value.should.eql "Samuel T. Anders"
+      result.rows[0].doc["job"].should.eql "pilot"
+      result.rows[0].doc["_rev"].length.should.be_at_least 30
     end
     
     it 'should return null when the view doesnt exist'
