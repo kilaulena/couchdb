@@ -153,6 +153,7 @@ describe 'CouchDB instance'
         doc._id = "123";
         saved_doc = db.save(doc);
         delete_response = db.deleteDoc({_id : "123", _rev : saved_doc.rev});
+        db.open("123");
       end
       
       it 'should send a successful request'
@@ -205,6 +206,7 @@ describe 'CouchDB instance'
       describe 'after delete'
         before_each
           delete_response = db.deleteDocAttachment({_id : "123", _rev : saved_doc.rev}, "friend.txt");
+          db.open("123");
         end
         
         it 'should send a successful request'
@@ -215,7 +217,7 @@ describe 'CouchDB instance'
           db.open("123").Callsign.should.eql "Starbuck"
         end
      
-        it 'should result in a deleted document'
+        it 'should result in a deleted document attachment'
           db.open("123").should.not.include "_attachments"
         end
      
