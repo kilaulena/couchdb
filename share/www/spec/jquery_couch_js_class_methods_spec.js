@@ -453,24 +453,14 @@ describe 'jQuery couchdb'
         success: function(resp){successCallback(resp)}
       });
       
-      // this is failing because the ajax call is ignoring the options. 
       $.couch.replicate(host + db.uri, host + db2.uri, {
-        body : {"create_target":true},
         success: function(resp){
           resp.ok.should.eql true
           resp.history[0].docs_written.should.eql 1
         },
-        error: function(status, error, reason){
-          console.log('in error')
-          console.log('status', status)
-          console.log('error', error)
-          console.log('reason', reason)
-          status.should.not.eql 500
-          error.should.not.eql 'case_clause'
-          reason.should.be_empty
-        }
-        // },
-        // error: function(status, error, reason){errorCallback(status, error, reason)}
+        error: function(status, error, reason){errorCallback(status, error, reason)}
+      }, {
+        "create_target":true
       });
       
       db2.info({

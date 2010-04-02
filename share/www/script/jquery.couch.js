@@ -322,13 +322,11 @@
             "The documents could not be deleted"
           );
         },
-        copyDoc: function(doc, options, ajaxOptions) {
+        copyDoc: function(docId, options, ajaxOptions) {
           ajaxOptions = $.extend(ajaxOptions, {
             complete: function(req) {
               var resp = $.httpData(req, "json");
               if (req.status == 201) {
-                doc._id = resp.id;
-                doc._rev = resp.rev;
                 if (options.success) options.success(resp);
               } else if (options.error) {
                 options.error(req.status, resp.error, resp.reason);
@@ -339,9 +337,7 @@
           });
           ajax({
               type: "COPY",
-              url: this.uri +
-                   encodeDocId(doc._id) +
-                   encodeOptions({rev: doc._rev})
+              url: this.uri + encodeDocId(docId)
             },
             options,
             "The document could not be copied",
@@ -420,13 +416,14 @@
       );
     },
 
-    replicate: function(source, target, options) {
+    replicate: function(source, target, ajaxOptions, replicationOptions) {
+      replicationOptions = $.extend({source: source, target: target}, replicationOptions);
       ajax({
           type: "POST", url: this.urlPrefix + "/_replicate",
-          data: JSON.stringify({source: source, target: target}),
+          data: JSON.stringify(replicationOptions),
           contentType: "application/json"
         },
-        options,
+        ajaxOptions,
         "Replication failed"
       );
     },
@@ -454,6 +451,13 @@
 
     $.ajax($.extend($.extend({
       type: "GET", dataType: "json",
+      beforeSend: function(xhr){
+        if(ajaxOptions && ajaxOptions.headers){
+          for (var header in ajaxOptions.headers){
+            xhr.setRequestHeader(header, ajaxOptions.headers[header]);
+          }
+        }
+      },
       complete: function(req) {
         var resp = $.httpData(req, "json");
         if (options.ajaxStart) {

@@ -165,7 +165,74 @@ describe 'jQuery couchdb db'
   end
   
   describe 'copyDoc'
-
+    before_each
+      doc = {"Name" : "Sharon Agathon", "Callsign" : "Athena", "_id" : "123"};
+      db.saveDoc(doc);
+    end
+    
+    it 'should result in another document with same data and new id'
+      db.copyDoc("123", {
+        success: function(resp){
+          resp.id.should.eql "456"
+          resp.rev.length.should.be_at_least 30
+        }, 
+        error: function(status, error, reason){errorCallback(status, error, reason)}
+      }, {
+        headers: {"Destination":"456"}
+      });
+      
+      db.openDoc("456", {
+        success: function(resp){
+          resp.Name.should.eql "Sharon Agathon"
+          resp.Callsign.should.eql "Athena"
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
+      });
+    end
+    
+    it 'should throw an error when trying to overwrite a document without providing a revision'
+      doc2 = {"Name" : "Louanne Katraine", "Callsign" : "Kat", "_id" : "456"};
+      db.saveDoc(doc2);
+      
+      db.copyDoc("123", {
+        error: function(status, error, reason){
+          status.should.eql 409
+          error.should.eql "conflict"
+          reason.should.eql "Document update conflict."
+        },
+        success: function(resp){successCallback(resp)}
+      }, {
+        headers: {"Destination":"456"}
+      });
+    end
+    
+    it 'should overwrite a document with the correct revision'
+      doc2 = {"Name" : "Louanne Katraine", "Callsign" : "Kat", "_id" : "456"};
+      var doc2_rev;
+      db.saveDoc(doc2, {
+        success: function(resp){
+          doc2_rev = resp.rev;
+        }
+      });
+      
+      db.copyDoc("123", {
+        success: function(resp){
+          resp.id.should.eql "456"
+          resp.rev.length.should.be_at_least 30
+        }, 
+        error: function(status, error, reason){errorCallback(status, error, reason)}
+      }, {
+        headers: {"Destination":"456?rev=" + doc2_rev}
+      });
+      
+      db.openDoc("456", {
+        success: function(resp){
+          resp.Name.should.eql "Sharon Agathon"
+          resp.Callsign.should.eql "Athena"
+        },
+        error: function(status, error, reason){errorCallback(status, error, reason)}
+      });
+    end
   end
   
   describe 'query'
