@@ -247,7 +247,7 @@
               }
             });
           } else {
-            alert("please provide an eachApp function for allApps()");
+            alert("Please provide an eachApp function for allApps()");
           }
         },
         openDoc: function(docId, options, ajaxOptions) {

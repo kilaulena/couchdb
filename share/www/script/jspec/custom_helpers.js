@@ -3,7 +3,7 @@ function stubAlert(){
     old_alert = alert;
   }
   alert = function(msg){
-    // console.log('alert: ', msg)
+    alert_msg = msg;
   };
 }
 

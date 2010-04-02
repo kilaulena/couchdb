@@ -114,6 +114,11 @@ describe 'jQuery couchdb db'
           success: function(resp){successCallback(resp)}
         });
       end
+      
+      it 'should alert with an error message prefix'
+        db.compactView("asdf");
+        alert_msg.should.match /The view could not be compacted/
+      end
     end
   end
    
@@ -142,6 +147,12 @@ describe 'jQuery couchdb db'
         success: function(resp){successCallback(resp)}
       });
     end
+    
+    it 'should alert with an error message prefix'
+      db.create();
+      db.create();
+      alert_msg.should.match /The database could not be created/
+    end
   end
   
   describe 'drop'
@@ -168,6 +179,12 @@ describe 'jQuery couchdb db'
         },
         success: function(resp){successCallback(resp)}
       });
+    end
+    
+    it 'should alert with an error message prefix'
+      db.drop();
+      db.drop();
+      alert_msg.should.match /The database could not be deleted/
     end
   end
 end

@@ -157,6 +157,11 @@ describe 'jQuery couchdb'
         error: function(status, error, reason){errorCallback(status, error, reason)}
       }, "test");
     end
+  
+    it 'should alert with an error message prefix'
+      $.couch.config("asdf", "asdf", "asdf");
+      alert_msg.should.match /An error occurred retrieving\/updating the server configuration/
+    end
   end
   
   describe 'session'
@@ -316,6 +321,11 @@ describe 'jQuery couchdb'
           success: function(resp){successCallback(resp)}
         });
       end
+  
+      it 'should alert with an error message prefix'
+        $.couch.login("asdf");
+        alert_msg.should.match /An error occurred logging in/
+      end
     end
   
     describe 'logout'
@@ -470,6 +480,11 @@ describe 'jQuery couchdb'
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
+    
+    it 'should alert with an error message prefix'
+      $.couch.replicate("asdf");
+      alert_msg.should.match /Replication failed/
+    end
   end
   
   describe 'newUUID'
@@ -486,6 +501,11 @@ describe 'jQuery couchdb'
       mock_request().and_return({'uuids':['a_sample_uuid']})
       $.couch.newUUID(1).should.not.eql 'a_sample_uuid'
       $.couch.newUUID(1).should.eql 'a_sample_uuid'
+    end
+    
+    it 'should alert with an error message prefix'
+      $.couch.newUUID("asdf");
+      alert_msg.should.match /Failed to retrieve UUID batch/
     end
   end
 end

@@ -74,6 +74,11 @@ describe 'jQuery couchdb db'
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
+    
+    it 'should alert with an error message prefix'
+      db.removeDoc({_id: "asdf"});
+      alert_msg.should.match /The document could not be deleted/
+    end
   end
   
   describe 'bulkRemove'
@@ -162,6 +167,11 @@ describe 'jQuery couchdb db'
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
+    
+    it 'should alert with an error message prefix'
+      db.bulkRemove({docs: ["asdf"]});
+      alert_msg.should.match /The documents could not be deleted/
+    end
   end
   
   describe 'copyDoc'
@@ -232,6 +242,11 @@ describe 'jQuery couchdb db'
         },
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
+    end
+    
+    it 'should alert with an error message prefix'
+      db.copyDoc("asdf", {}, {});
+      alert_msg.should.match /The document could not be copied/
     end
   end
   
@@ -325,7 +340,7 @@ describe 'jQuery couchdb db'
       });
     end
       
-    it 'should apply a view in erlang also'
+    it 'should apply a query in erlang also'
       // when this test fails, read this: http://wiki.apache.org/couchdb/EnableErlangViews
       var erlang_map = 'fun({Doc}) -> ' +
                        'ID = proplists:get_value(<<"_id">>, Doc, null), ' +
@@ -346,6 +361,11 @@ describe 'jQuery couchdb db'
         },
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
+    end
+    
+    it 'should alert with an error message prefix'
+      db.query("asdf");
+      alert_msg.should.match /An error occurred querying the database/
     end
   end
   
@@ -438,6 +458,11 @@ describe 'jQuery couchdb db'
         success: function(resp){successCallback(resp)}
       });
     end
+    
+    it 'should alert with an error message prefix'
+      db.view("asdf");
+      alert_msg.should.match /An error occurred accessing the view/
+    end
   end
   
   describe 'setDbProperty'
@@ -466,6 +491,11 @@ describe 'jQuery couchdb db'
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
+    
+    it 'should alert with an error message prefix'
+      db.setDbProperty("asdf");
+      alert_msg.should.match /The property could not be updated/
+    end
   end
   
   describe 'getDbProperty'
@@ -488,6 +518,11 @@ describe 'jQuery couchdb db'
         },
         success: function(resp){successCallback(resp)}
       });
+    end
+    
+    it 'should alert with an error message prefix'
+      db.getDbProperty("asdf");
+      alert_msg.should.match /The property could not be retrieved/
     end
   end
 end

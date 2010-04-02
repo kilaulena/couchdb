@@ -123,7 +123,8 @@ describe 'jQuery couchdb db'
   
   describe 'allApps'
     it 'should provide a custom function with appName, appPath and design document when there is an attachment with index.html'
-      var designDoc = {"_id" : "_design/spec_db"};
+      var designDoc = {"_id" : "_design/with_attachments"};
+    
       designDoc._attachments = {
         "index.html" : {
           "content_type": "text\/html",
@@ -135,9 +136,9 @@ describe 'jQuery couchdb db'
       
       db.allApps({
         eachApp: function(appName, appPath, ddoc) { 
-          appName.should.eql "spec_db"
-          appPath.should.eql "/spec_db/_design/spec_db/index.html"
-          ddoc._id.should.eql "_design/spec_db"
+          appName.should.eql "with_attachments"
+          appPath.should.eql "/spec_db/_design/with_attachments/index.html"
+          ddoc._id.should.eql "_design/with_attachments"
           ddoc._attachments["index.html"].content_type.should.eql "text/html"
           ddoc._attachments["index.html"].length.should.be_less_than designDoc._attachments["index.html"].data.length
         },
@@ -146,7 +147,7 @@ describe 'jQuery couchdb db'
     end
     
     it 'should provide a custom function with appName, appPath and design document when there is a couchapp with index file'
-      var designDoc = {"_id" : "_design/spec_db"};
+      var designDoc = {"_id" : "_design/with_index"};
       designDoc.couchapp = {
         "index" : "cylon"
       };
@@ -154,9 +155,9 @@ describe 'jQuery couchdb db'
       
       db.allApps({
         eachApp: function(appName, appPath, ddoc) { 
-          appName.should.eql "spec_db"
-          appPath.should.eql "/spec_db/_design/spec_db/cylon"
-          ddoc._id.should.eql "_design/spec_db"
+          appName.should.eql "with_index"
+          appPath.should.eql "/spec_db/_design/with_index/cylon"
+          ddoc._id.should.eql "_design/with_index"
           ddoc.couchapp.index.should.eql "cylon"
         },
         error: function(status, error, reason){errorCallback(status, error, reason)}
@@ -164,7 +165,7 @@ describe 'jQuery couchdb db'
     end
     
     it 'should not call the eachApp function when there is neither index.html in _attachments nor a couchapp index file'
-      var designDoc = {"_id" : "_design/spec_db"};
+      var designDoc = {"_id" : "_design/nothing"};
       db.saveDoc(designDoc);
       
       var eachApp_called = false;
@@ -177,6 +178,11 @@ describe 'jQuery couchdb db'
       
       eachApp_called.should.be_false
     end
+    
+    it 'should alert with an error message prefix'
+      db.allApps();
+      alert_msg.should.match /Please provide an eachApp function for allApps()/
+    end
   end
   
   describe 'openDoc'
@@ -184,7 +190,7 @@ describe 'jQuery couchdb db'
       doc = {"Name" : "Louanne Katraine", "Callsign" : "Kat", "_id" : "123"};
       db.saveDoc(doc);
     end
-    
+     
     it 'should open the document'
       db.openDoc("123", {
         success: function(resp){
@@ -193,7 +199,7 @@ describe 'jQuery couchdb db'
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
-  
+    
     it 'should raise a 404 error when there is no document with the given ID'
       db.openDoc("non_existing", {
         error: function(status, error, reason){
@@ -204,7 +210,7 @@ describe 'jQuery couchdb db'
         success: function(resp){successCallback(resp)}
       });
     end
-  
+   
     it 'should pass through the options'
       doc.Name = "Sasha";
       db.saveDoc(doc);
@@ -217,13 +223,18 @@ describe 'jQuery couchdb db'
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
-  end
   
+    it 'should alert with an error message prefix'
+      db.openDoc("asdf");
+      alert_msg.should.match /The document could not be retrieved/
+    end
+  end
+   
   describe 'saveDoc'
     before_each
       doc = {"Name" : "Kara Thrace", "Callsign" : "Starbuck"};
     end
-
+     
     it 'should save the document'
       db.saveDoc(doc, {
         success: function(resp, status){
@@ -278,7 +289,7 @@ describe 'jQuery couchdb db'
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
-  
+    
     it 'should pass through the options'
       db.saveDoc(doc, {
         "batch" : "ok",
@@ -289,8 +300,13 @@ describe 'jQuery couchdb db'
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
     end
+    
+    it 'should alert with an error message prefix'
+      db.saveDoc("asdf");
+      alert_msg.should.match /The document could not be saved/
+    end
   end
-  
+   
   describe 'bulkSave'
     before_each
       doc  = {"Name" : "Kara Thrace", "Callsign" : "Starbuck"};
@@ -395,6 +411,11 @@ describe 'jQuery couchdb db'
         },
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
+    end
+     
+    it 'should alert with an error message prefix'
+      db.bulkSave("asdf");
+      alert_msg.should.match /The documents could not be saved/
     end
   end
 end
