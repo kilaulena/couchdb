@@ -5,7 +5,7 @@ describe 'CouchDB class'
     before
       useTestUserDb();
     end
-
+  
     after
       useOldUserDb();
     end
@@ -27,6 +27,10 @@ describe 'CouchDB class'
         CouchDB.login("Gaius Baltar", "secretpass").name.should.eql "Gaius Baltar"
       end
           
+      it 'should return the roles of the logged in user'
+        CouchDB.login("Gaius Baltar", "secretpass").roles.should.eql ["president"]
+      end  
+      
       it 'should post _session'
         CouchDB.should.receive("request", "once").with_args("POST", "/_session")
         CouchDB.login("Gaius Baltar", "secretpass");
@@ -37,7 +41,7 @@ describe 'CouchDB class'
         CouchDB.session().userCtx.name.should.eql "Gaius Baltar"
       end
     end
-    
+      
     describe '.logout'
       before_each
         CouchDB.login("Gaius Baltar", "secretpass");
@@ -57,28 +61,28 @@ describe 'CouchDB class'
         CouchDB.session().name.should.be_null
       end
     end
-      
+  
     describe '.session'
       before_each
         CouchDB.login("Gaius Baltar", "secretpass");
       end
-      
+    
       it 'should return ok true'
         CouchDB.session().ok.should.be_true
       end
-      
+    
       it 'should return the users name'
         CouchDB.session().userCtx.name.should.eql "Gaius Baltar"
       end
-      
+    
       it 'should return the users roles'
         CouchDB.session().userCtx.roles.should.eql ["president"]
       end
-      
+    
       it 'should return the name of the authentication db'
         CouchDB.session().info.authentication_db.should.eql "spec_users_db"
       end
-      
+    
       it 'should return the active authentication handler'
         CouchDB.session().info.authenticated.should.eql "cookie"
       end
