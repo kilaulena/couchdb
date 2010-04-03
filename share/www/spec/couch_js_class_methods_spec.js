@@ -166,9 +166,11 @@ describe 'CouchDB class'
           "_id" : "_design/spec_db"
         };
         db.save(designDoc);
-        CouchDB.allDesignDocs().spec_db.rows[0].id.should.eql "_design/spec_db"
-        CouchDB.allDesignDocs().spec_db.rows[0].key.should.eql "_design/spec_db"
-        CouchDB.allDesignDocs().spec_db.rows[0].value.rev.length.should.be_at_least 30
+        
+        var allDesignDocs = CouchDB.allDesignDocs();
+        allDesignDocs.spec_db.rows[0].id.should.eql "_design/spec_db"
+        allDesignDocs.spec_db.rows[0].key.should.eql "_design/spec_db"
+        allDesignDocs.spec_db.rows[0].value.rev.length.should.be_at_least 30
       end
     end
     
