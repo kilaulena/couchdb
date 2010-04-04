@@ -24,9 +24,14 @@ describe 'CouchDB instance'
       // req.should.be_a XMLHttpRequest
     end
     
+    it 'should set the options the CouchDB instance has got as httpHeaders'
+      CouchDB.should.receive("request", "once").with_args("GET", "/spec_db", {headers: {"X-Couch-Full-Commit": "false"}})
+      db.request("GET", "/spec_db");
+    end
+    
     it 'should pass through the options'
-      CouchDB.should.receive("request", "once").with_args("GET", "/spec_db", {"X-Couch-Full-Commit":"true"})
-      db.request("GET", "/spec_db", {"X-Couch-Full-Commit":"true"});
+      CouchDB.should.receive("request", "once").with_args("GET", "/spec_db", {"X-Couch-Persist": "true", headers: {"X-Couch-Full-Commit": "false"}})
+      db.request("GET", "/spec_db", {"X-Couch-Persist":"true"});
     end
   end
     
@@ -221,14 +226,14 @@ describe 'CouchDB instance'
           db.open("123").should.not.include "_attachments"
         end
      
-        it 'should record the revision in the deleted document'
+        it 'should record the revision in the document whose attachment has been deleted'
           var responseText = db.request("GET", "/spec_db/123?rev=" + delete_response.rev).responseText;
           var deleted_doc = JSON.parse(responseText);
           deleted_doc._rev.should.eql delete_response.rev
           deleted_doc._id.should.eql delete_response.id
         end
      
-        it 'should return ok true, the ID and the revision of the deleted document'
+        it 'should return ok true, the ID and the revision of the document whose attachment has been deleted'
           delete_response.ok.should.be_true
           delete_response.id.should.eql "123"
           delete_response.should.have_property 'rev'
