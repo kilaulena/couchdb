@@ -33,12 +33,33 @@ describe 'CouchDB instance'
         result.rows[1].id.should.eql "456"
       end
     
-      it 'should pass through the keys'
+      it 'should pass through the options'
         var result = db.allDocs({"startkey": "123", "limit": "1"});
       
         result.rows.should.have_length 1
         result.rows[0].id.should.eql "123"
       end
+      
+      it 'should pass through the keys'
+        var result = db.allDocs({}, ["456"]);
+
+        result.rows.should.have_length 1
+        result.rows[0].id.should.eql "456"
+        result.rows[0].key.should.eql "456"
+        result.rows[0].value.rev.length.should.be_at_least 30
+      end
+
+      it 'should pass through the options and the keys'
+        var result = db.allDocs({"include_docs":"true"}, ["456"]);
+
+        result.rows.should.have_length 1
+        result.rows[0].id.should.eql "456"
+        result.rows[0].key.should.eql "456"
+        result.rows[0].value.rev.length.should.be_at_least 30
+        result.rows[0].doc["Name"].should.eql "Samuel T. Anders"
+        result.rows[0].doc["_rev"].length.should.be_at_least 30
+      end
+
     end
   end
   
