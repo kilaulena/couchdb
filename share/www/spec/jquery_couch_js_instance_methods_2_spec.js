@@ -71,7 +71,7 @@ describe 'jQuery couchdb db'
         });
       end
     
-      it 'should pass through the keys'
+      it 'should pass through the options'
         db.allDocs({
           "startkey": "123", 
           "limit": "1",
@@ -128,7 +128,7 @@ describe 'jQuery couchdb db'
       designDoc._attachments = {
         "index.html" : {
           "content_type": "text\/html",
-          // base64 encoded
+          // this is "<html><p>Hi, here is index!</p></html>", base64 encoded
           "data": "PGh0bWw+PHA+SGksIGhlcmUgaXMgaW5kZXghPC9wPjwvaHRtbD4="
         }
       };
@@ -140,7 +140,7 @@ describe 'jQuery couchdb db'
           appPath.should.eql "/spec_db/_design/with_attachments/index.html"
           ddoc._id.should.eql "_design/with_attachments"
           ddoc._attachments["index.html"].content_type.should.eql "text/html"
-          ddoc._attachments["index.html"].length.should.be_less_than designDoc._attachments["index.html"].data.length
+          ddoc._attachments["index.html"].length.should.eql "<html><p>Hi, here is index!</p></html>".length
         },
         error: function(status, error, reason){errorCallback(status, error, reason)}
       });
