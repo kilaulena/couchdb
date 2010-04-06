@@ -158,11 +158,12 @@ describe 'CouchDB instance'
         doc._id = "123";
         saved_doc = db.save(doc);
         delete_response = db.deleteDoc({_id : "123", _rev : saved_doc.rev});
+        delete_last_req = db.last_req;
         db.open("123");
       end
       
       it 'should send a successful request'
-        db.last_req.status.should.eql 200
+        delete_last_req.status.should.eql 200
       end
     
       it 'should result in a deleted document'
