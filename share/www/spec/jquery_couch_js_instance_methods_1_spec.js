@@ -80,14 +80,14 @@ describe 'jQuery couchdb db'
               "map" : "function(doc) { emit(doc._id, doc); }"
             }
           },
-          "_id" : "_design/spec_db"
+          "_id" : "_design/myview"
         };
         db.saveDoc(designDoc);
         db.saveDoc({"Name" : "Felix Gaeta", "_id" : "123"});
       end
       
       it 'should return ok true'
-        db.compactView("spec_db", {
+        db.compactView("myview", {
           success: function(resp) {
             resp.ok.should.be_true
           },
@@ -96,16 +96,16 @@ describe 'jQuery couchdb db'
       end
   
       it 'should trigger _compact_view with the groupname'
-        db.compactView("spec_db", {
+        db.compactView("myview", {
           success: function(resp, obj) {
-            obj.url.should.eql "/spec_db/_compact/spec_db"
+            obj.url.should.eql "/spec_db/_compact/myview"
           },
           error: function(status, error, reason){errorCallback(status, error, reason)}
         });
       end
       
       it 'should return raise a 404 error when the design name doesnt exist'
-        db.compactView("non_existing_db_name", {
+        db.compactView("non_existing_design_name", {
           error: function(status, error, reason){
             status.should.eql 404
             error.should.eql "not_found"
