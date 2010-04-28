@@ -20,7 +20,7 @@ describe 'jQuery couchdb db'
 
   describe 'removeDoc'
     before_each
-      doc = {"Name" : "Louanne Katraine", "Callsign" : "Kat", "_id" : "123"};
+      doc = {"Name" : "Louanne Katraine", "Callsign" : "Kat", "_id" : "345"};
       saved_doc = {};
       db.saveDoc(doc, {
         success: function(resp){
@@ -31,9 +31,9 @@ describe 'jQuery couchdb db'
     end
     
     it 'should result in a deleted document'
-      db.removeDoc({_id : "123", _rev : saved_doc.rev}, {
+      db.removeDoc({_id : "345", _rev : saved_doc.rev}, {
         success: function(resp){
-          db.openDoc("123", {
+          db.openDoc("345", {
             error: function(status, error, reason){
               status.should.eql 404
               error.should.eql "not_found"
@@ -47,10 +47,10 @@ describe 'jQuery couchdb db'
     end
   
     it 'should return ok true, the ID and the revision of the deleted document'
-      db.removeDoc({_id : "123", _rev : saved_doc.rev}, {
+      db.removeDoc({_id : "345", _rev : saved_doc.rev}, {
         success: function(resp){
           resp.ok.should.be_true
-          resp.id.should.eql "123"
+          resp.id.should.eql "345"
           resp.rev.should.be_a String
           resp.rev.length.should.be_at_least 30
         },
@@ -59,9 +59,9 @@ describe 'jQuery couchdb db'
     end
       
     it 'should record the revision in the deleted document'
-      db.removeDoc({_id : "123", _rev : saved_doc.rev}, {
+      db.removeDoc({_id : "345", _rev : saved_doc.rev}, {
         success: function(resp){
-          db.openDoc("123", {
+          db.openDoc("345", {
             rev: resp.rev,
             success: function(resp2){
               resp2._rev.should.eql resp.rev
