@@ -22,10 +22,9 @@ function successCallback(resp){
 }
 
 function useTestUserDb(){
-  users_db = new CouchDB("spec_users_db", {"X-Couch-Full-Commit":"false"});
+  users_db = new CouchDB("spec_users_db");
   var xhr = CouchDB.request("PUT", "/_config/couch_httpd_auth/authentication_db", {
-    body: JSON.stringify("spec_users_db"),
-    headers: {"X-Couch-Persist": "false"}
+    body: JSON.stringify("spec_users_db")
   });
   if(typeof(old_auth_db) == 'undefined'){
     old_auth_db = xhr.responseText.replace(/\n/,'').replace(/"/g,'');
@@ -34,8 +33,7 @@ function useTestUserDb(){
 
 function useOldUserDb(){
   CouchDB.request("PUT", "/_config/couch_httpd_auth/authentication_db", {
-    body: JSON.stringify(old_auth_db),
-    headers: {"X-Couch-Persist": "false"}
+    body: JSON.stringify(old_auth_db)
   });
   users_db.deleteDb();
 }
